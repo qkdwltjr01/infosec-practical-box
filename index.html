@@ -525,7 +525,7 @@ function blk(id) { return S.blocks[id] || (S.blocks[id] = { outline: "", kw: {},
 function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 // 동기화 병합용: 쌍·어휘에 id가 없던 옛 기록에 id를 붙여요
 function normalizeState(s) {
-  s.blocks = s.blocks || {}; s.nodeStats = s.nodeStats || {}; s.pairs = s.pairs || []; s.glossary = s.glossary || []; s.tomb = s.tomb || {};
+  s.blocks = s.blocks || {}; s.nodeStats = s.nodeStats || {}; s.pairs = s.pairs || []; s.glossary = s.glossary || []; s.tomb = s.tomb || {}; s.notes = s.notes || {};
   s.pairs.forEach(p => { if (!p.id) p.id = newId(); });
   s.glossary.forEach(g => { if (!g.id) g.id = newId(); if (!g.u) g.u = 0; });
   return s;
@@ -1051,12 +1051,12 @@ function glossaryOf(blockId) { return S.glossary.filter(g => g.block === blockId
 function glossaryList(items, editable) {
   const ul = h("ul", { class: "small", style: "padding-left:18px" });
   for (const g of items) {
-    const li = h("li", { style: "margin:4px 0" }, h("b", {}, g.term), g.path ? h("span", { class: "muted" }, `  (${g.block} · ${g.path})`) : h("span", { class: "muted" }, `  (${g.block})`));
+    const li = h("li", { style: "margin:4px 0" }, h("b", {}, g.term), g.src === "ai" ? h("span", { class: "chip gray", style: "margin-left:6px" }, "AI") : null, g.path ? h("span", { class: "muted" }, `  (${g.block} · ${g.path})`) : h("span", { class: "muted" }, `  (${g.block})`));
     if (editable) {
-      const inp = h("input", { type: "text", style: "width:100%;margin-top:2px", placeholder: "내 말로 한두 줄" }); inp.value = g.mine || "";
+      const inp = h("input", { type: "text", style: "width:100%;margin-top:2px", placeholder: g.short ? "내 말로 한두 줄 (AI 뜻: " + g.short + ")" : "내 말로 한두 줄" }); inp.value = g.mine || "";
       inp.addEventListener("input", () => { g.mine = inp.value; g.u = Date.now(); save(); });
       li.append(inp, h("button", { class: "btn ghost small", style: "margin-top:2px", onclick: () => { S.glossary = S.glossary.filter(x => x !== g); S.tomb["g:" + g.id] = Date.now(); save(); render(); } }, "삭제"));
-    } else li.append(h("div", {}, g.mine || h("span", { class: "muted" }, "(아직 내 말 정리 없음)")));
+    } else li.append(h("div", {}, g.mine || (g.short ? "🤖 " + g.short : h("span", { class: "muted" }, "(아직 내 말 정리 없음)"))));
     if (g.ai) { const d = h("details", { class: "ai-saved" }, h("summary", {}, "🤖 AI 설명 보기")); const body = h("div", { class: "ai-a" }); body.innerHTML = mdLite(g.ai); d.append(body); li.append(d); }
     ul.append(li);
   }
@@ -1180,6 +1180,241 @@ function aiCard() {
     h("p", { class: "small muted", style: "margin-top:8px" }, "키는 이 브라우저에만 저장돼요. GitHub(Gist) 동기화에도 올라가지 않아서, 폰·다른 브라우저에서는 한 번 더 넣어야 해요. 답은 틀릴 수 있으니 분류·숫자·법 조항은 교재로 확인하세요."));
 }
 
+// ───────── AI가 알아서: 어휘·헷갈리는 쌍 뽑기, 아침 정리, 저녁 퀴즈 ─────────
+// 재료는 내가 만든 지도·키워드·어휘장·틀린 칸 기록뿐이에요. 교재 본문은 AI가 못 봐요.
+async function aiJSON(prompt, maxTokens) {
+  const headers = { "Authorization": "Bearer " + AI.key, "Content-Type": "application/json", "X-Title": "정보보안기사 실기 연습장" };
+  if (/^https?:/.test(location.href)) headers["HTTP-Referer"] = location.origin + location.pathname;
+  let r;
+  try {
+    r = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers, body: JSON.stringify({ model: AI.model, max_tokens: maxTokens || 3000,
+      messages: [{ role: "system", content: AI_SYSTEM + " 이번 답은 반드시 JSON 하나만 출력해. 설명 문장이나 ``` 없이." }, { role: "user", content: prompt }] }) });
+  } catch (e) { throw new Error("네트워크에 연결할 수 없어요."); }
+  if (!r.ok) { let m = ""; try { m = ((await r.json()).error || {}).message || ""; } catch (e) {} throw new Error(r.status === 401 ? "OpenRouter 키가 잘못됐어요." : r.status === 402 ? "OpenRouter 크레딧이 부족해요." : "OpenRouter 오류 " + r.status + (m ? ": " + m : "")); }
+  const j = await r.json();
+  const txt = (((j.choices || [])[0] || {}).message || {}).content || "";
+  const a = txt.indexOf("{"), z = txt.lastIndexOf("}");
+  if (a < 0 || z < a) throw new Error("AI 답을 읽지 못했어요. 다시 해 주세요.");
+  try { return JSON.parse(txt.slice(a, z + 1)); } catch (e) { throw new Error("AI 답 형식이 깨졌어요. 다시 해 주세요."); }
+}
+function hashStr(s) { let x = 0; for (let i = 0; i < s.length; i++) x = (x * 31 + s.charCodeAt(i)) | 0; return String(x); }
+function note(key) { return S.notes[key]; }
+function setNote(key, val) { S.notes[key] = Object.assign({}, val, { u: Date.now() }); save(); }
+// 블록 내용을 AI에게 줄 글로 정리
+function blockContext(ids, withMiss) {
+  const out = [];
+  for (const id of ids) {
+    const b = BLOCK[id], d = S.blocks[id]; if (!d || !d.outline) continue;
+    out.push(`### ${b.id} ${b.title} (이론편 p.${b.pages})`);
+    for (const n of parseOutline(d.outline)) {
+      const kws = kwList(d.kw[n.path]).map(k => k.replace(/\|/g, "/"));
+      out.push(`${"  ".repeat(n.depth)}- ${n.label}${kws.length ? " :: " + kws.join(", ") : ""}`);
+    }
+    const gl = glossaryOf(id);
+    if (gl.length) out.push("  [어휘장] " + gl.map(g => `${g.term}${g.mine ? " = " + g.mine : g.short ? " = " + g.short : ""}`).join(" / "));
+    if (withMiss) {
+      const last = (d.attempts || []).slice(-1)[0];
+      if (last && last.missed && last.missed.length) out.push("  [최근 인출에서 틀린 칸] " + last.missed.map(p => p.split(" > ").pop()).join(", "));
+      const weak = Object.entries(S.nodeStats).filter(([k, s]) => k.startsWith(id + "::") && s.miss > s.hit).map(([k]) => k.split(" > ").pop());
+      if (weak.length) out.push("  [자주 틀린 칸] " + weak.join(", "));
+    }
+  }
+  return out.join("\n");
+}
+// 어휘장·헷갈리는 쌍에 넣기 (이미 있는 건 건너뛰어요)
+function addVocab(list, blockId, path) {
+  let n = 0;
+  for (const v of list || []) {
+    const term = String(v.term || "").trim(); if (!term) continue;
+    if (S.glossary.some(g => norm(g.term) === norm(term))) continue;
+    S.glossary.push({ id: newId(), u: Date.now(), term, full: term, mine: "", short: String(v.short || "").trim(), ai: String(v.explain || "").trim(), block: v.block && BLOCK[v.block] ? v.block : blockId, path: path || "", date: todayStr(), known: 0, unknown: 0, src: "ai" });
+    n++;
+  }
+  return n;
+}
+function addPairs(list) {
+  let n = 0;
+  for (const p of list || []) {
+    const a = String(p.a || "").trim(), b = String(p.b || "").trim(); if (!a || !b) continue;
+    if (S.pairs.some(x => (norm(x.a) === norm(a) && norm(x.b) === norm(b)) || (norm(x.a) === norm(b) && norm(x.b) === norm(a)))) continue;
+    S.pairs.push({ id: newId(), a, b, note: String(p.diff || "").trim(), date: todayStr(), src: "ai" });
+    n++;
+  }
+  return n;
+}
+const EXTRACT_RULE = `규칙:
+- vocab: 이 학생(어휘력이 약함)이 뜻을 모를 만한 용어·약어·명령어를 3 ~ 8개. 각 항목 {"term": 용어, "short": 한 줄 쉬운 뜻(25자 안팎), "explain": 쉬운 말 설명 2 ~ 3줄 + 일상 비유 1줄, "block": 블록 번호}.
+- pairs: 이름이 비슷하거나 실기에서 자주 섞이는 개념 쌍 0 ~ 4개. 각 항목 {"a": 개념, "b": 개념, "diff": 차이를 한 줄로}. 학생이 틀리거나 섞어 쓴 칸이 있으면 그걸 먼저.
+- 이미 어휘장에 있는 용어는 빼. 자료에 없는 내용을 지어내지 마.
+출력 형식: {"vocab":[...], "pairs":[...]}`;
+// 블록 하나를 채점한 뒤 자동으로: 어휘·헷갈리는 쌍 뽑기 (지도·키워드가 바뀌었을 때만 다시)
+async function autoExtract(blockId, statusEl, extra) {
+  if (!aiOn()) return;
+  const d = S.blocks[blockId]; if (!d || !d.outline) return;
+  const sig = hashStr(d.outline + JSON.stringify(d.kw));
+  const prev = note("extract:" + blockId);
+  if (prev && prev.sig === sig) return;
+  const st = h("div", { class: "small muted", style: "margin-top:8px" }, "🤖 이 블록에서 어휘·헷갈리는 쌍을 뽑는 중…");
+  if (statusEl) statusEl.append(st);
+  try {
+    const j = await aiJSON(`정보보안기사 실기 공부 자료야. 학생이 교재를 보고 만든 지도(제목 :: 키워드)와 기록이야.\n\n${blockContext([blockId], true)}${extra ? "\n\n[인출 결과]\n" + extra : ""}\n\n[이미 어휘장에 있는 용어] ${S.glossary.map(g => g.term).join(", ") || "없음"}\n\n${EXTRACT_RULE}`);
+    const nv = addVocab(j.vocab, blockId), np = addPairs(j.pairs);
+    setNote("extract:" + blockId, { sig, at: Date.now() });
+    st.textContent = `🤖 어휘 ${nv}개, 헷갈리는 쌍 ${np}개를 자동으로 추가했어요.` + (nv + np ? " (어휘장·헷갈리는 쌍 탭)" : "");
+  } catch (e) { st.textContent = "🤖 자동 정리 실패: " + e.message; st.style.color = "var(--bad)"; }
+}
+// 어휘장·헷갈리는 쌍 탭: 아직 안 뽑은 블록 전부
+async function extractAll(btn, out) {
+  const ids = BLOCKS.filter(b => S.blocks[b.id] && S.blocks[b.id].outline).map(b => b.id);
+  if (!ids.length) { alertBox("아직 지도가 있는 블록이 없어요."); return; }
+  btn.disabled = true; out.innerHTML = "";
+  for (const id of ids) await autoExtract(id, out);
+  btn.disabled = false;
+  if (!out.textContent) out.append(h("div", { class: "small muted" }, "이미 다 뽑아 둔 상태예요. (지도·키워드를 고치면 그 블록만 다시 뽑아요)"));
+  setTimeout(() => render(), 1500);
+}
+
+// 아침 복습: 어제 블록 AI 정리 (한 번 만들면 저장해 두고, 지도가 바뀌면 다시)
+function morningAICard(key, ids) {
+  const card = h("div", { class: "card" });
+  const body = h("div", { class: "ai-a" });
+  const sig = hashStr(ids.map(id => (S.blocks[id] || {}).outline + JSON.stringify((S.blocks[id] || {}).kw) + JSON.stringify((S.blocks[id] || {}).attempts || [])).join("|"));
+  const saved = note("morning:" + key);
+  const run = async () => {
+    body.innerHTML = "<span class=\"muted small\">🤖 정리하는 중…</span>";
+    const ctx = blockContext(ids, true);
+    const pairs = S.pairs.slice(-12).map(p => `${p.a} ↔ ${p.b}: ${p.note}`).join("\n");
+    try {
+      const full = await aiStream([{ role: "system", content: AI_SYSTEM }, { role: "user", content:
+`아침 10분 복습용으로 어제 공부한 블록을 정리해 줘. 자료는 학생이 교재를 보고 만든 지도(제목 :: 키워드)와 인출 기록이야.
+
+${ctx}
+
+[헷갈리는 쌍]
+${pairs || "없음"}
+
+형식 (굵게와 목록만):
+**블록별 핵심** — 블록마다 3 ~ 5줄, 쉬운 말로. 키워드는 굵게.
+**어제 틀린 칸 다시 보기** — 틀린 칸마다 무엇을 놓쳤는지 1줄.
+**헷갈리기 쉬운 것** — 2 ~ 3개, 차이 1줄씩.
+**셀프 체크** — 실기 단답형 스타일 질문 5개 (답은 쓰지 마).
+자료에 없는 내용은 지어내지 말고, 확실하지 않은 숫자·법 조항은 "교재 확인"이라고 표시해.` }], t => { body.innerHTML = mdLite(t); });
+      setNote("morning:" + key, { sig, text: full });
+      when.textContent = "방금 만듦";
+    } catch (e) { body.innerHTML = ""; body.append(h("span", { style: "color:var(--bad)" }, "⚠️ " + e.message)); }
+  };
+  const when = h("span", { class: "small muted" }, saved ? (saved.sig === sig ? "저장된 정리" : "지도가 바뀌어서 다시 만들 수 있어요") : "");
+  card.append(h("div", { class: "row", style: "justify-content:space-between" }, h("h2", { style: "margin:0" }, "🤖 AI 정리"), when),
+    body, h("div", { class: "row", style: "margin-top:8px" }, aiOn() ? h("button", { class: "btn ghost small", onclick: run }, saved ? "다시 만들기" : "만들기") : h("span", { class: "small muted" }, "기록·백업 탭에서 OpenRouter 키를 넣으면 AI가 정리해 줘요.")));
+  if (saved && saved.text) body.innerHTML = mdLite(saved.text);
+  else if (aiOn() && ids.some(id => S.blocks[id] && S.blocks[id].outline)) setTimeout(run, 0);   // 처음 열면 알아서 만들어요
+  else if (aiOn()) body.innerHTML = "<span class=\"muted small\">이 범위에는 아직 지도가 없어요.</span>";
+  return card;
+}
+
+// 저녁 퀴즈: AI가 실기형 문제를 만들고 채점까지
+let AQ = null;
+function aiQuizCard(main, dates) {
+  const t = todayStr();
+  let chosen = dates.includes(t) ? t : (dates.filter(d => d < t).pop() || dates[0]);
+  const sel = h("select", {}, dates.map(d => h("option", { value: d, selected: d === chosen ? "" : false }, `${fmtDate(d)} 블록 (${BLOCKS.filter(b => b.date === d).map(b => b.id).join(", ")})`)),
+    h("option", { value: "all" }, "지금까지 공부한 전체 블록"));
+  const num = h("select", {}, ["8", "12", "16"].map(n => h("option", { value: n, selected: n === "12" ? "" : false }, n + "문제")));
+  const st = h("div", { class: "small muted", style: "margin-top:8px" });
+  const make = async e => {
+    const ids = sel.value === "all" ? BLOCKS.filter(b => S.blocks[b.id] && S.blocks[b.id].outline).map(b => b.id) : BLOCKS.filter(b => b.date === sel.value).map(b => b.id);
+    const ctx = blockContext(ids, true);
+    if (!ctx) { alertBox("이 범위에는 지도가 없어요."); return; }
+    e.target.disabled = true; st.textContent = "🤖 문제를 만드는 중… (10 ~ 30초)";
+    try {
+      const n = +num.value, nd = Math.max(1, Math.round(n / 5));
+      const j = await aiJSON(`정보보안기사 실기 저녁 복습 퀴즈를 만들어 줘. 자료는 학생이 교재를 보고 만든 지도(제목 :: 키워드)와 기록이야.
+
+${ctx}
+
+규칙:
+- 총 ${n}문제: 단답형 ${n - nd}개, 서술형 ${nd}개. 실제 실기 단답형처럼 "~의 명칭을 쓰시오", 빈칸 채우기, 포트·옵션·명령어 쓰기 등.
+- 반드시 위 자료(제목과 키워드) 범위 안에서만 출제. 틀린 칸·자주 틀린 칸에서 먼저, 같은 칸을 두 번 묻지 마.
+- 각 문제 {"type": "단답"|"서술", "q": 문제, "answer": 모범답안(서술은 3 ~ 4줄), "keywords": 채점 핵심 키워드 배열, "block": 블록 번호, "topic": 해당 칸 제목}
+출력 형식: {"questions":[...]}`, 4000);
+      const qs = (j.questions || []).filter(q => q && q.q && q.answer);
+      if (!qs.length) throw new Error("문제가 비어 있어요. 다시 해 주세요.");
+      AQ = { items: qs, i: 0, ans: qs.map(() => ""), graded: null, ids };
+      render();
+    } catch (err) { st.textContent = "⚠️ " + err.message; e.target.disabled = false; }
+  };
+  main.append(h("div", { class: "card" }, h("h2", {}, "🤖 AI 실기형 퀴즈"),
+    h("p", {}, "오늘 블록의 지도·키워드·틀린 칸으로 AI가 ", h("b", {}, "단답형·서술형 문제를 만들고, 다 풀면 채점"), "해 줘요. 틀린 문제는 어휘장·헷갈리는 쌍에 알아서 들어가요."),
+    aiOn() ? h("div", {}, h("div", { class: "row" }, h("b", {}, "범위"), sel, num), h("button", { class: "btn", style: "margin-top:10px", onclick: make }, "문제 만들기"), st)
+           : h("p", { class: "small muted" }, "기록·백업 탭에서 OpenRouter 키를 넣으면 쓸 수 있어요. 아래 키워드 퀴즈는 키 없이도 돼요.")));
+}
+function viewAIQuiz(main) {
+  const A = AQ;
+  if (A.graded) {
+    const g = A.graded;
+    main.append(h("div", { class: "card" }, h("h2", {}, "🤖 채점 결과"), h("div", { class: "score" }, `${g.total} / 100`),
+      h("p", { class: "small muted" }, "맞음 " + g.items.filter(x => x.verdict === "맞음").length + " · 부분 " + g.items.filter(x => x.verdict === "부분").length + " · 틀림 " + g.items.filter(x => x.verdict === "틀림").length),
+      A.extractEl || "", h("div", { class: "row" }, h("button", { class: "btn", onclick: () => { AQ = null; render(); } }, "처음으로"))));
+    A.items.forEach((q, k) => {
+      const r = g.items.find(x => +x.i === k) || {};
+      const cls = r.verdict === "맞음" ? "ok" : r.verdict === "부분" ? "warn" : "bad";
+      const fb = h("div", { class: "ai-a", style: "margin:6px 0 0" }); fb.innerHTML = mdLite(r.feedback || "");
+      main.append(h("div", { class: "card" },
+        h("div", { class: "row", style: "justify-content:space-between" }, h("span", { class: "eyebrow" }, `${k + 1}. ${q.type} · ${q.block || ""} ${q.topic || ""}`), h("span", { class: "chip " + cls }, r.verdict || "?")),
+        h("p", { style: "margin:6px 0" }, h("b", {}, q.q)),
+        h("div", { class: "qcard", style: "margin:6px 0" }, h("div", { class: "path" }, "내 답"), A.ans[k] || h("span", { class: "muted" }, "(비움)")),
+        h("div", { class: "qcard", style: "margin:6px 0" }, h("div", { class: "path" }, "모범답안"), q.answer),
+        fb));
+    });
+    return;
+  }
+  const q = A.items[A.i];
+  const ta = h("textarea", { rows: q.type === "서술" ? "4" : "2", placeholder: q.type === "서술" ? "3 ~ 4줄로 써요" : "답을 써요" });
+  ta.value = A.ans[A.i] || "";
+  ta.addEventListener("input", () => { A.ans[A.i] = ta.value; });
+  ta.addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); next(); } });
+  const st = h("div", { class: "small muted", style: "margin-top:8px" });
+  const gradeAll = async btn => {
+    btn.disabled = true; st.textContent = "🤖 채점하는 중…";
+    try {
+      const list = A.items.map((x, k) => ({ i: k, type: x.type, q: x.q, answer: x.answer, keywords: x.keywords || [], mine: A.ans[k] || "" }));
+      const j = await aiJSON(`정보보안기사 실기 퀴즈 채점. 각 문제의 모범답안·핵심 키워드와 학생 답을 비교해.
+- 단답: 뜻이 같으면 표현이 달라도 맞음. 철자·띄어쓰기는 봐줘.
+- 서술: 핵심 키워드가 다 들어가면 맞음, 일부면 부분, 거의 없으면 틀림.
+- feedback: 틀렸거나 부분이면 무엇이 빠졌는지와 쉬운 설명 2 ~ 3줄. 맞았으면 1줄.
+문제와 답: ${JSON.stringify(list)}
+출력 형식: {"items":[{"i":번호,"verdict":"맞음"|"부분"|"틀림","feedback":"..."}]}`, 4000);
+      const items = j.items || [];
+      const pts = items.reduce((a, x) => a + (x.verdict === "맞음" ? 1 : x.verdict === "부분" ? 0.5 : 0), 0);
+      A.graded = { items, total: Math.round(pts / A.items.length * 100) };
+      // 틀린 문제로 어휘·헷갈리는 쌍 자동 추가
+      const wrong = A.items.map((x, k) => ({ x, r: items.find(y => +y.i === k) || {} })).filter(o => o.r.verdict !== "맞음");
+      A.extractEl = h("div", {});
+      if (wrong.length) {
+        const extra = wrong.map(o => `- [${o.x.topic || ""}] ${o.x.q} / 모범답: ${o.x.answer} / 학생 답: ${A.ans[A.items.indexOf(o.x)] || "(비움)"}`).join("\n");
+        const st2 = h("div", { class: "small muted" }, "🤖 틀린 문제에서 어휘·헷갈리는 쌍을 뽑는 중…"); A.extractEl.append(st2);
+        aiJSON(`정보보안기사 실기 저녁 퀴즈에서 학생이 틀린 문제야.\n${extra}\n\n[이미 어휘장에 있는 용어] ${S.glossary.map(g => g.term).join(", ") || "없음"}\n\n${EXTRACT_RULE}`)
+          .then(j2 => { const nv = addVocab(j2.vocab, A.ids[0]), np = addPairs(j2.pairs); save(); st2.textContent = `🤖 틀린 문제에서 어휘 ${nv}개, 헷갈리는 쌍 ${np}개를 추가했어요.`; })
+          .catch(e2 => { st2.textContent = "🤖 자동 추가 실패: " + e2.message; });
+      }
+      render();
+    } catch (e) { st.textContent = "⚠️ " + e.message; btn.disabled = false; }
+  };
+  const next = () => { if (A.i < A.items.length - 1) { A.i++; render(); } };
+  const last = A.i === A.items.length - 1;
+  main.append(h("div", { class: "card" },
+    h("div", { class: "row", style: "justify-content:space-between" }, h("span", { class: "eyebrow" }, `${A.i + 1} / ${A.items.length} · ${q.type}`), h("span", { class: "small muted" }, `${q.block || ""} ${q.topic || ""}`)),
+    h("div", { class: "bar", style: "margin:8px 0 12px" }, h("i", { style: `width:${(A.i + 1) / A.items.length * 100}%` })),
+    h("p", { style: "font-size:17px;margin:0 0 10px" }, h("b", {}, q.q)),
+    ta,
+    h("div", { class: "row", style: "margin-top:10px" },
+      h("button", { class: "btn ghost", disabled: A.i === 0 ? "" : false, onclick: () => { A.i--; render(); } }, "← 이전"),
+      last ? h("button", { class: "btn", onclick: e => gradeAll(e.target) }, "다 풀었어요 · 채점") : h("button", { class: "btn", onclick: next }, "다음 → (Ctrl+Enter)"),
+      h("button", { class: "btn ghost small", style: "margin-left:auto", onclick: () => { if (confirm("퀴즈를 그만할까요?")) { AQ = null; render(); } } }, "그만하기")),
+    st));
+  setTimeout(() => ta.focus(), 0);
+}
+
 function askPanel(b, nodes) {
   let mode = "easy";
   let thread = null;
@@ -1237,7 +1472,7 @@ function glossaryRecall(blockId) {
     h("p", { class: "small muted" }, "읽기 때 물어본 말이에요. 책을 덮은 채로 내 말로 설명해 보고, \"보기\"로 내가 정리한 것과 비교해요."));
   for (const g of items) {
     const inp = h("input", { type: "text", style: "width:100%", placeholder: "내 말로 설명" });
-    const ans = h("div", { class: "small hidden", style: "margin-top:4px" }, "내 정리: ", h("b", {}, g.mine || "(정리 없음 — 어휘장 탭에서 채워 주세요)"),
+    const ans = h("div", { class: "small hidden", style: "margin-top:4px" }, "내 정리: ", h("b", {}, g.mine || (g.short ? "🤖 " + g.short : "(정리 없음 — 어휘장 탭에서 채워 주세요)")),
       h("span", {}, "  "), h("button", { class: "btn small", onclick: () => { g.known++; save(); ans.append(h("span", { class: "chip ok" }, "알았음")); } }, "알았음"),
       h("button", { class: "btn ghost small", onclick: () => { g.unknown++; save(); ans.append(h("span", { class: "chip bad" }, "몰랐음")); } }, "몰랐음"));
     box.append(h("div", { style: "margin:8px 0" }, h("b", {}, g.term), inp, h("button", { class: "btn ghost small", style: "margin-top:4px", onclick: () => ans.classList.remove("hidden") }, "보기"), ans));
@@ -1253,8 +1488,12 @@ function viewGlossary(main) {
     BLOCKS.filter(b => glossaryOf(b.id).length).map(b => h("option", { value: b.id, selected: glossFilter === b.id ? "" : false }, `${b.id} · ${b.title} (${glossaryOf(b.id).length})`)));
   const items = (glossFilter ? glossaryOf(glossFilter) : S.glossary).slice().reverse();
   const weak = S.glossary.filter(g => g.unknown > g.known);
+  main.append(h("div", { class: "card" }, h("h2", {}, "🤖 AI가 알아서 채워요"),
+    h("p", { class: "small" }, "블록을 ③ 인출에서 채점하면, 그 블록의 지도·키워드·틀린 칸을 보고 AI가 어려운 용어와 쉬운 설명을 자동으로 넣어요. 저녁 AI 퀴즈에서 틀린 문제도 들어가요. 필요 없는 건 삭제하면 돼요."),
+    aiOn() ? (() => { const out = h("div"); const b2 = h("button", { class: "btn ghost small", onclick: () => extractAll(b2, out) }, "지금까지 블록에서 뽑기"); return h("div", {}, b2, out); })()
+           : h("p", { class: "small muted" }, "기록·백업 탭에서 OpenRouter 키를 넣으면 켜져요.")));
   main.append(h("div", { class: "card" }, h("h2", {}, "어휘장"),
-    h("p", {}, "② 읽기의 \"모르는 말 바로 묻기\"에서 저장한 말이 모여요. ", h("b", {}, "내 말로 정리"), "는 여기서 고칠 수 있어요. 정리가 비어 있으면 인출·퀴즈에서 비교할 수 없으니 꼭 채워 두세요."),
+    h("p", {}, "직접 물어본 말과 AI가 뽑은 말이 모여요. ", h("b", {}, "내 말로 정리"), "를 적어 두면 인출·퀴즈에서 그걸로 비교해요. 비어 있으면 AI의 한 줄 뜻으로 비교해요."),
     h("div", { class: "row" }, h("b", {}, "범위"), sel),
     weak.length ? h("p", { class: "small" }, `⚠️ "몰랐음"이 더 많은 말 ${weak.length}개: `, weak.map(g => h("span", { class: "chip bad" }, g.term))) : null));
   main.append(h("div", { class: "card" }, items.length ? glossaryList(items, true) : h("p", { class: "muted" }, "아직 저장한 말이 없어요.")));
@@ -1281,6 +1520,7 @@ function recallPanel(blockId, onFinish) {
     save();
     paintResult(blockId, g, tree, result);
     gbtn.disabled = true;
+    autoExtract(blockId, result, g.results.filter(x => x.hits < x.total || x.misplaced.length).map(x => `- ${x.node.label}: 학생 답 "${x.text || "(비움)"}", 빠진 키워드 ${x.kwRes.filter(k => !k.hit).map(k => k.kw).join(", ") || "없음"}${x.misplaced.length ? ", 섞임 " + x.misplaced.map(m => m.tok + "→" + m.where).join(", ") : ""}`).join("\n"));
     if (onFinish) onFinish(g);
   } }, "채점");
   box.append(tree, gbtn, result);
@@ -1386,6 +1626,7 @@ function viewMorning(main) {
     h("div", { class: "row" }, h("b", {}, "범위"), sel));
   main.append(card);
   if (!list.length) { main.append(h("div", { class: "card" }, "그 날짜에는 블록이 없어요.")); return; }
+  main.append(morningAICard(morningDate, list.map(x => x.id)));
   if (morningIdx >= list.length) morningIdx = 0;
   const b = list[morningIdx];
   const area = h("div", { class: "card" },
@@ -1404,13 +1645,15 @@ let Q = null;
 function viewQuiz(main) {
   const t = todayStr();
   const dates = [...new Set(BLOCKS.map(b => b.date))];
+  if (AQ) { viewAIQuiz(main); return; }
   if (!Q) {
+    aiQuizCard(main, dates);
     let chosen = dates.includes(t) ? t : (dates.filter(d => d < t).pop() || dates[0]);
     const sel = h("select", {}, dates.map(d => h("option", { value: d, selected: d === chosen ? "" : false }, `${fmtDate(d)} 블록 (${BLOCKS.filter(b => b.date === d).map(b => b.id).join(", ")})`)),
       h("option", { value: "all" }, "지금까지 공부한 전체 블록"));
     const weakFirst = h("input", { type: "checkbox", checked: "" });
     const withGloss = h("input", { type: "checkbox", checked: "" });
-    main.append(h("div", { class: "card" }, h("h2", {}, "저녁 퀴즈: 섞어서 키워드 떠올리기"),
+    main.append(h("div", { class: "card" }, h("h2", {}, "키워드 퀴즈 (AI 없이)"),
       h("p", {}, "오늘 블록의 칸들이 순서 없이 하나씩 나와요. 칸 이름(경로)을 보고 키워드를 적어요. 블록과 순서가 섞여 있어서, 진짜 기억하는지 확인할 수 있어요."),
       h("div", { class: "row" }, h("b", {}, "범위"), sel),
       h("label", { class: "row small", style: "margin-top:6px" }, weakFirst, "자주 틀린 칸 먼저"),
@@ -1450,7 +1693,7 @@ function viewQuiz(main) {
       inp, out,
       h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn", onclick: e => {
         e.target.disabled = true;
-        out.append(h("div", { class: "qcard" }, h("div", { class: "path" }, "내가 정리한 것"), g.mine || "(정리 없음 — 어휘장 탭에서 채워 주세요)"),
+        out.append(h("div", { class: "qcard" }, h("div", { class: "path" }, "내가 정리한 것"), g.mine || (g.short ? "🤖 " + g.short : "(정리 없음 — 어휘장 탭에서 채워 주세요)")),
           h("div", { class: "row" }, h("button", { class: "btn", onclick: () => mark(true) }, "알았음"), h("button", { class: "btn ghost", onclick: () => mark(false) }, "몰랐음")));
       } }, "내 정리 보기"), h("button", { class: "btn ghost", onclick: () => { Q.i = Q.items.length; render(); } }, "그만하기"))));
     setTimeout(() => inp.focus(), 0);
@@ -1485,14 +1728,18 @@ function viewQuiz(main) {
 // ───────── 헷갈리는 쌍 ─────────
 function pairsTable(list, editable) {
   const tb = h("table", {}, h("tr", {}, h("th", {}, "A"), h("th", {}, "B"), h("th", {}, "차이 (내 말로)"), h("th", {}, "날짜"), editable ? h("th", {}) : null));
-  for (const p of list) tb.append(h("tr", {}, h("td", {}, h("b", {}, p.a)), h("td", {}, h("b", {}, p.b)), h("td", {}, p.note), h("td", { class: "small muted" }, fmtDate(p.date)),
+  for (const p of list) tb.append(h("tr", {}, h("td", {}, h("b", {}, p.a)), h("td", {}, h("b", {}, p.b)), h("td", {}, p.note, p.src === "ai" ? h("span", { class: "chip gray", style: "margin-left:6px" }, "AI") : null), h("td", { class: "small muted" }, fmtDate(p.date)),
     editable ? h("td", {}, h("button", { class: "btn ghost small", onclick: () => { S.pairs = S.pairs.filter(x => x !== p); S.tomb["p:" + p.id] = Date.now(); save(); render(); } }, "삭제")) : null));
   return tb;
 }
 function viewPairs(main) {
   const a = h("input", { type: "text", placeholder: "예) OSPF" }), b = h("input", { type: "text", placeholder: "예) OCSP" });
   const note = h("input", { type: "text", placeholder: "예) OSPF = 링크 상태 라우팅 프로토콜 / OCSP = 인증서 폐기 여부 실시간 조회", style: "flex:1;min-width:240px" });
-  main.append(h("div", { class: "card" }, h("h2", {}, "헷갈리는 쌍"),
+  main.append(h("div", { class: "card" }, h("h2", {}, "🤖 AI가 알아서 채워요"),
+    h("p", { class: "small" }, "블록을 ③ 인출에서 채점하면, 그 블록의 지도·키워드·틀린 칸을 보고 AI가 헷갈리는 개념 쌍과 차이을 자동으로 넣어요. 저녁 AI 퀴즈에서 틀린 문제도 들어가요. 필요 없는 건 삭제하면 돼요."),
+    aiOn() ? (() => { const out = h("div"); const b2 = h("button", { class: "btn ghost small", onclick: () => extractAll(b2, out) }, "지금까지 블록에서 뽑기"); return h("div", {}, b2, out); })()
+           : h("p", { class: "small muted" }, "기록·백업 탭에서 OpenRouter 키를 넣으면 켜져요.")));
+  main.append(h("div", { class: "card" }, h("h2", {}, "헷갈리는 쌍 직접 넣기"),
     h("p", {}, "이름이 비슷하거나 자꾸 섞이는 두 개념을 적어요. 차이는 ", h("b", {}, "교재를 보고 내 말로"), " 한 줄로 써요. 아침 복습 화면에 최근 것이 다시 나와요."),
     h("div", { class: "row" }, a, b, note, h("button", { class: "btn", onclick: () => {
       if (!a.value.trim() || !b.value.trim()) { alertBox("A와 B를 둘 다 적어 주세요."); return; }
@@ -1529,7 +1776,7 @@ function setSyncStatus(state, msg) { syncStatus = { state, msg: msg || "", at: s
 // 병합: 통째로 덮어쓰지 않고 항목마다 합쳐요 (여러 번 돌려도 결과가 같아요)
 function mergeStates(A, B) {
   A = normalizeState(JSON.parse(JSON.stringify(A || {}))); B = normalizeState(JSON.parse(JSON.stringify(B || {})));
-  const out = { blocks: {}, nodeStats: {}, pairs: [], glossary: [], tomb: {} };
+  const out = { blocks: {}, nodeStats: {}, pairs: [], glossary: [], tomb: {}, notes: {} };
   for (const t of [A.tomb, B.tomb]) for (const k in t) out.tomb[k] = Math.max(out.tomb[k] || 0, +t[k] || 0);
   // 블록: 지도·키워드는 마지막으로 고친 쪽, 인출 기록은 합집합
   for (const id of new Set([...Object.keys(A.blocks), ...Object.keys(B.blocks)])) {
@@ -1558,6 +1805,8 @@ function mergeStates(A, B) {
     gm[g.id] = Object.assign({}, w, { known: Math.max(+o.known || 0, +g.known || 0), unknown: Math.max(+o.unknown || 0, +g.unknown || 0), u: Math.max(+o.u || 0, +g.u || 0) });
   }
   out.glossary = Object.values(gm).filter(g => !out.tomb["g:" + g.id]).sort((p, q) => (p.date || "").localeCompare(q.date || "") || (+p.u || 0) - (+q.u || 0));
+  out.notes = {};
+  for (const k of new Set([...Object.keys(A.notes), ...Object.keys(B.notes)])) { const x = A.notes[k], y = B.notes[k]; out.notes[k] = !x ? y : !y ? x : ((+y.u || 0) > (+x.u || 0) ? y : x); }
   out.lastBackup = [A.lastBackup, B.lastBackup].filter(Boolean).sort().pop() || null;
   out.updatedAt = Math.max(+A.updatedAt || 0, +B.updatedAt || 0);
   return out;
@@ -1705,6 +1954,12 @@ function viewHelp(main) {
       h("li", {}, "설명을 읽고 ", h("b", {}, "화면을 보지 않고 내 말로 한두 줄"), " 정리해요. 못 쓰겠으면 질문 방식을 바꿔 다시 물어요."),
       h("li", {}, h("b", {}, "어휘장에 저장"), " → ③ 인출 끝, 아침 복습, 저녁 퀴즈에서 다시 나와요. 어휘장 탭에서 정리를 고칠 수 있어요.")),
     h("p", { class: "small muted" }, "질문 시간도 읽기 시간 안에 들어가요. 한 번에 1 ~ 2분, 한 블록에 3 ~ 5개까지만 해요."),
+    h("h3", {}, "AI가 알아서 하는 것 (OpenRouter 키를 넣었을 때)"),
+    h("ul", {},
+      h("li", {}, h("b", {}, "③ 인출 채점 뒤"), ": 그 블록의 지도·키워드·틀린 칸을 보고 어려운 용어는 어휘장에, 헷갈리는 개념은 헷갈리는 쌍에 자동으로 넣어요. 지도·키워드를 고쳤을 때만 다시 뽑아요."),
+      h("li", {}, h("b", {}, "아침 복습"), ": 처음 열면 어제 블록을 블록별 핵심, 틀린 칸, 헷갈리는 것, 셀프 체크 질문으로 정리해요. 한 번 만들면 저장돼요."),
+      h("li", {}, h("b", {}, "저녁 퀴즈"), ": \"문제 만들기\"를 누르면 오늘 블록으로 단답·서술 문제를 만들고, 다 풀면 채점해요. 틀린 문제는 어휘장·헷갈리는 쌍에 들어가요."),
+      h("li", {}, "AI는 교재 본문을 못 보고 ", h("b", {}, "내 지도·키워드만"), " 봐요. 그래서 키워드를 잘 적을수록 결과가 좋아요. 숫자·법 조항은 교재로 확인해요.")),
     h("h3", {}, "채점 규칙"),
     h("ul", {},
       h("li", {}, "② 읽기 때 적은 키워드가 답에 들어 있으면 맞음이에요. 띄어쓰기, 대소문자, 하이픈은 무시해요."),
