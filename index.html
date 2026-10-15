@@ -1486,6 +1486,12 @@ function syncCard() {
             h("li", {}, "GitHub → Settings → Developer settings → Personal access tokens → ", h("b", {}, "Tokens (classic)"), " → Generate new token"),
             h("li", {}, "권한은 ", h("b", {}, "gist 하나만"), " 체크 → 만든 토큰을 아래에 붙여 넣고 연결"),
             h("li", {}, "다른 기기(웹 주소, 폰)에서도 같은 토큰만 넣으면 기존 기록을 찾아서 붙어요. ", h("b", {}, "토익 단어 상자 토큰(gist 권한)을 그대로 써도 돼요."))),
+          (() => {
+            // 토익 단어 상자(같은 github.io 주소)에서 연결해 둔 토큰이 이 브라우저에 있으면 그대로 써요
+            let t = ""; try { t = (JSON.parse(localStorage.getItem("voca-box-sync-v1") || "null") || {}).token || ""; } catch (e) {}
+            return t ? h("div", { class: "callout ok", style: "margin:8px 0" }, "이 브라우저에 ", h("b", {}, "토익 단어 상자 동기화 토큰"), "이 있어요. ",
+              h("button", { class: "btn small", style: "margin-left:6px", onclick: () => connectSync(t) }, "그 토큰으로 연결")) : null;
+          })(),
           h("div", { class: "row" }, tok, h("button", { class: "btn", onclick: () => connectSync(tok.value) }, "연결"))),
     h("p", { class: "small muted" }, "처음 옮길 때 순서: 지금까지 쓰던 쪽(예: PC 파일)에서 먼저 연결 → 그다음 새 쪽(웹 주소·폰)에서 같은 토큰으로 연결. 기록은 항목마다 합쳐져서 지워지지 않아요."));
 }
