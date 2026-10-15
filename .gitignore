@@ -1,0 +1,12 @@
+# 앱에서 내보낸 개인 학습 기록
+실기연습_백업_*.json
+*.json
+
+# 개인 일정 파일은 올리지 않는다 (바탕화면 '일정 관리' 폴더에만 둔다)
+*.md
+!README.md
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store

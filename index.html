@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>실기 연습장</title>
+<style>
+:root {
+  --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #667085; --line: #e3e6eb;
+  --accent: #2f6fde; --accent-soft: #e8f0fd;
+  --ok: #1f8a4c; --ok-soft: #e4f5ea; --bad: #c8372d; --bad-soft: #fbe9e7;
+  --warn: #a86a00; --warn-soft: #fdf3dc; --gray-soft: #eef0f3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171c; --card: #1d2128; --text: #e6e8ec; --muted: #9aa3b2; --line: #2e333c;
+    --accent: #6b9cf0; --accent-soft: #23314a;
+    --ok: #5cc98a; --ok-soft: #1e3a2a; --bad: #f07a70; --bad-soft: #43231f;
+    --warn: #e6b04d; --warn-soft: #40331a; --gray-soft: #2a2f37;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.6 "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
+header h1 { font-size: 22px; margin: 4px 0; }
+header .sub { color: var(--muted); font-size: 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 12px 0; }
+.notice { border-left: 4px solid var(--accent); }
+.notice ul { margin: 6px 0 0; padding-left: 20px; }
+nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+nav button { border: 1px solid var(--line); background: var(--card); color: var(--text);
+  padding: 8px 12px; border-radius: 999px; cursor: pointer; font: inherit; }
+nav button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.btn { border: 1px solid var(--accent); background: var(--accent); color: #fff; padding: 7px 14px;
+  border-radius: 8px; cursor: pointer; font: inherit; }
+button.btn.ghost { background: transparent; color: var(--accent); }
+button.btn.small { padding: 3px 10px; font-size: 13px; }
+button:disabled { opacity: .5; cursor: default; }
+select, input[type=text], textarea { font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+textarea { width: 100%; min-height: 260px; font-family: "D2Coding", Consolas, monospace; font-size: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+h2 { font-size: 18px; margin: 0 0 8px; }
+h3 { font-size: 16px; margin: 14px 0 6px; }
+.steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+.steps button { flex: 1; min-width: 120px; border: 1px solid var(--line); background: var(--bg); color: var(--text);
+  padding: 10px; border-radius: 10px; cursor: pointer; font: inherit; text-align: left; }
+.steps button.on { border-color: var(--accent); background: var(--accent-soft); }
+.steps b { display: block; }
+.timer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.timer .clock { font-size: 26px; font-variant-numeric: tabular-nums; font-weight: 700; min-width: 90px; }
+.bar { height: 6px; background: var(--gray-soft); border-radius: 3px; overflow: hidden; flex: 1; min-width: 120px; }
+.bar > i { display: block; height: 100%; background: var(--accent); width: 0; }
+.tree { list-style: none; padding-left: 0; margin: 6px 0; }
+.tree .node { padding: 6px 8px; border-radius: 8px; margin: 3px 0; border: 1px solid transparent; }
+.tree .label { font-weight: 600; }
+.tree .node input[type=text] { width: 100%; margin-top: 4px; }
+.node.ok { background: var(--ok-soft); border-color: var(--ok); }
+.node.part { background: var(--warn-soft); border-color: var(--warn); }
+.node.bad { background: var(--bad-soft); border-color: var(--bad); }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 13px; margin: 2px 4px 2px 0; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.chip.bad { background: var(--bad-soft); color: var(--bad); font-weight: 600; }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.gray { background: var(--gray-soft); color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+.score { font-size: 28px; font-weight: 700; }
+.qcard { font-size: 17px; padding: 14px; border-radius: 10px; background: var(--bg); margin: 8px 0; }
+.qcard .path { color: var(--muted); font-size: 13px; }
+.hidden { display: none; }
+.pill { display: inline-block; padding: 0 8px; border-radius: 6px; background: var(--gray-soft); font-size: 13px; }
+.pill.done { background: var(--ok-soft); color: var(--ok); }
+.pill.today { background: var(--accent-soft); color: var(--accent); }
+@media (max-width: 600px) { .steps button { min-width: 45%; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>🔐 정보보안기사 실기 연습장</h1>
+  <div class="sub"><span id="headerSub"></span><span id="syncHead"></span></div>
+</header>
+
+<div class="card notice">
+  <b>먼저 알아둘 것</b>
+  <ul>
+    <li><b>이 페이지는 Claude에 연결되지 않아요.</b> 인터넷 연결은 "기록·백업" 탭에서 동기화를 켰을 때 내 GitHub 비공개 Gist에만 해요.</li>
+    <li><b>지도(트리)와 키워드는 미리 들어 있지 않아요.</b> 전부 내가 <b>알기사 교재를 보고 직접</b> 입력해요. 그래서 교재와 어긋날 일이 없어요.</li>
+    <li><b>채점은 글자 비교예요.</b> ② 읽기 때 내가 적은 키워드가 ③ 인출 답에 들어 있는지만 확인해요. <b>내용이 맞는지 판단하지는 못해요.</b> 내용 피드백이 필요하면 <b>"결과 복사"</b>를 눌러 Claude Code 채팅에 붙여 넣으세요.</li>
+    <li><b>기록은 이 브라우저에 자동 저장돼요.</b> PC·웹·폰에서 같은 기록을 쓰려면 <b>"기록·백업" 탭에서 클라우드 동기화</b>를 켜세요. 동기화를 안 켜면 브라우저 기록을 지우거나 다른 브라우저로 열 때 안 보여요.</li>
+  </ul>
+</div>
+
+<nav id="nav">
+  <button data-view="today">오늘</button>
+  <button data-view="study">블록 공부</button>
+  <button data-view="morning">아침 복습</button>
+  <button data-view="quiz">저녁 퀴즈</button>
+  <button data-view="glossary">어휘장</button>
+  <button data-view="pairs">헷갈리는 쌍</button>
+  <button data-view="records">기록·백업</button>
+  <button data-view="help">사용법</button>
+</nav>
+
+<main id="main"></main>
+</div>
+
+<script>
+// ───────── 블록 데이터 (일별계획.md 2주 버전과 같음) ─────────
+const BLOCKS = [
+  ["B1","2026-10-16","PART 1 시스템","S01 · 1. 윈도우 기본 학습","3~8",[6,8]],
+  ["B2","2026-10-16","PART 1 시스템","S01 · 2. UNIX/Linux 기본 학습 ① ✂️","9~27",[9,16]],
+  ["B3","2026-10-16","PART 1 시스템","S01 · 2. UNIX/Linux 기본 학습 ② ✂️ (끝까지)","28~46",[17,25]],
+  ["B4","2026-10-16","PART 1 시스템","S01 · 3. UNIX/Linux 시스템 관리","47~60",[26,31]],
+  ["B5","2026-10-16","PART 1 시스템","S01 · 4. UNIX/Linux 서버 보안 ① ✂️","61~77",[32,39]],
+  ["B6","2026-10-17","PART 1 시스템","S01 · 4. UNIX/Linux 서버 보안 ② ✂️","78~94",[40,47]],
+  ["B7","2026-10-17","PART 1 시스템","S01 · 4. UNIX/Linux 서버 보안 ③ ✂️ (끝까지)","95~110",[48,54]],
+  ["B8","2026-10-17","PART 1 시스템","S01 · 5. 시스템 해킹","111~123",[55,60]],
+  ["B9","2026-10-17","PART 1 시스템","★ S02 UNIX/Linux 서버 취약점 전체 (1. 계정 관리, 2. 파일 및 디렉터리 관리)","124~140",[61,68]],
+  ["B10","2026-10-18","PART 1 시스템","★ S03 윈도우 서버 취약점 전체 (1. 계정, 2. 서비스, 3. 로그 관리) + PART 1 트리","141~164",[69,79]],
+  ["B11","2026-10-18","PART 2 네트워크","S04 · 1. 네트워크와 보안 위협, 2. OSI 7계층, 3. ARP/RARP","165~186",[138,145]],
+  ["B12","2026-10-18","PART 2 네트워크","S04 · 4. IP(IPv4), 5. ICMP","187~205",[146,153]],
+  ["B13","2026-10-19","PART 2 네트워크","★ S04 · 6. TCP, 7. UDP, 8. 네트워크 관련 기술","206~225",[154,160]],
+  ["B14","2026-10-19","PART 2 네트워크","★ S04 · 9. 네트워크 관리 명령어","226~234",[161,164]],
+  ["B15","2026-10-19","PART 2 네트워크","★ S04 · 10. 스니핑 공격","235~255",[165,172]],
+  ["B16","2026-10-19","PART 2 네트워크","★ S04 · 11. 포트 스캔 기법","256~271",[173,178]],
+  ["B17","2026-10-19","PART 2 네트워크","★ S04 · 12. 서비스 거부(DoS) 공격","272~282",[179,182]],
+  ["B18","2026-10-20","PART 2 네트워크","★ S04 · 13. DDoS 공격 ① ✂️","283~300",[183,189]],
+  ["B19","2026-10-20","PART 2 네트워크","★ S04 · 13. DDoS 공격 ② ✂️ (끝까지)","301~317",[190,195]],
+  ["B20","2026-10-20","PART 2 네트워크","S04 · 14. DRDoS 공격","318~326",[196,198]],
+  ["B21","2026-10-20","PART 2 네트워크","S04 · 15. 무선랜 보안 (훑기 위주)","327~346",[199,206]],
+  ["B22","2026-10-21","PART 2 네트워크","★ S05 · 1. VPN, 2. IPsec","347~364",[207,213]],
+  ["B23","2026-10-21","PART 2 네트워크","★ S05 · 3. SSL/TLS","365~382",[214,220]],
+  ["B24","2026-10-21","PART 2 네트워크","S06 라우터 보안 전체 + PART 2 트리","383~396",[221,225]],
+  ["B25","2026-10-21","PART 3 애플리케이션","★ S07 · 1. DNS","397~414",[312,319]],
+  ["B26","2026-10-22","PART 3 애플리케이션","S07 · 2. HTTP, 3. FTP, 4. SNMP, 5. DHCP","415~438",[320,329]],
+  ["B27","2026-10-22","PART 3 애플리케이션","★ S08 · 1. SQL Injection","439~457",[330,337]],
+  ["B28","2026-10-22","PART 3 애플리케이션","★ S08 · 2. XSS, 3. CSRF, 4. SSRF, 5. OS 명령 실행","458~473",[338,344]],
+  ["B29","2026-10-22","PART 3 애플리케이션","★ S08 · 6. 파일 업로드 ~ 10. URL/파라미터 변조","474~494",[345,352]],
+  ["B30","2026-10-23","PART 3 애플리케이션","S08 · 11. 세션 관리 ~ 14. 개발 보안관리","495~509",[353,359]],
+  ["B31","2026-10-23","PART 3 애플리케이션","S09 · 1. 디렉터리 리스팅 ~ 5. 검색엔진 정보 노출","510~522",[360,364]],
+  ["B32","2026-10-23","PART 3 애플리케이션","★ S09 · 6. 웹서버 보안 대책(아파치), 7. 웹 로그 분석, 8. 보안서버 구축","523~539",[365,371]],
+  ["B33","2026-10-23","PART 3 애플리케이션","S10 이메일 보안 전체","540~555",[372,378]],
+  ["B34","2026-10-23","PART 3 애플리케이션","S11 데이터베이스 보안 + S12 클라우드 + PART 3 트리","556~576",[379,387]],
+  ["B35","2026-10-24","PART 4 침해사고","★ S13 · 1. Snort ① ✂️","577~589",[450,455]],
+  ["B36","2026-10-24","PART 4 침해사고","★ S13 · 1. Snort ② ✂️ (끝까지)","590~602",[456,461]],
+  ["B37","2026-10-24","PART 4 침해사고","★ S13 · 2. iptables","603~624",[462,471]],
+  ["B38","2026-10-24","PART 4 침해사고","S13 · 3. 보안 솔루션 ~ 5. 보안 장비 취약점 (훑기 위주)","625~643",[472,480]],
+  ["B39","2026-10-25","PART 4 침해사고","S14 시스템 점검 도구 전체 (훑기 위주)","644~655",[481,486]],
+  ["B40","2026-10-25","PART 4 침해사고","S15 · 1. 리버스 셸, 2. 루트킷 시나리오","656~672",[487,493]],
+  ["B41","2026-10-25","PART 4 침해사고","S15 · 3. DBD 시나리오","673~684",[494,499]],
+  ["B42","2026-10-25","PART 4 침해사고","S15 · 4. 악성코드 행위 분석 시나리오","685~701",[500,507]],
+  ["B43","2026-10-26","PART 4 침해사고","S15 · 5. 워터링 홀 시나리오","702~716",[508,514]],
+  ["B44","2026-10-26","PART 4 침해사고","S16 주요 취약점 전체 (ShellShock, SSL/TLS, NTP, SSDP) + PART 4 트리","717~738",[515,524]],
+  ["B45","2026-10-26","PART 5 관리","S17 · 1. 정보보호 개요, 2. 접근통제, 3. 정보보호정책","739~752",[584,587]],
+  ["B46","2026-10-26","PART 5 관리","★ S17 · 4. 위험관리","753~767",[588,592]],
+  ["B47","2026-10-27","PART 5 관리","S17 · 5. BCP/DRP ~ 10. ISMS-P 인증","768~790",[593,599]],
+  ["B48","2026-10-27","PART 6 법규","★ S18 · 1. 법규 개요, 2. 개인정보 보호법","791~812",[610,637]],
+  ["B49","2026-10-27","PART 6 법규","★ S18 · 3. 안전성 확보조치 기준, 4. 정보통신망법, 5. 정보통신기반 보호법","813~834",[638,665]],
+  ["B50","2026-10-27","PART 6 법규","S18 · 6. 전자서명법, 7. 위치정보법 + PART 5·6 트리","835~끝",[666,686]],
+].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title,pages,dan,pn}; });
+const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
+const EXAM_DATE = "2026-11-14";
+function stepMins(b) { const p = b ? b.pn : 20; return [p < 10 ? 5 : 10, Math.round(p * 3.5), Math.max(10, Math.round(p * 1.5)), 10]; }
+function blockMin(b) { return stepMins(b).reduce((a, x) => a + x, 0); }
+function fmtMin(x) { const hh = Math.floor(x / 60), mm = x % 60; return hh ? hh + "시간" + (mm ? " " + mm + "분" : "") : mm + "분"; }
+const STEPS = [
+  {key:"structure", name:"① 구조", min:10},
+  {key:"read", name:"② 읽기", min:70},
+  {key:"recall", name:"③ 인출", min:30},
+  {key:"rest", name:"④ 휴식", min:10},
+];
+
+// ───────── 저장 ─────────
+const KEY = "infosec-practical-v1";
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.blocks) { s.glossary = s.glossary || []; return s; } } catch (e) {}
+  return { blocks: {}, nodeStats: {}, pairs: [], glossary: [], lastBackup: null };
+}
+let S = load();
+function save() { S.updatedAt = Date.now(); if (typeof syncSoon === "function") syncSoon(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { alertBox("저장에 실패했어요. 백업을 내보내 두세요."); } }
+function blk(id) { return S.blocks[id] || (S.blocks[id] = { outline: "", kw: {}, attempts: [], u: 0 }); }
+function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+// 동기화 병합용: 쌍·어휘에 id가 없던 옛 기록에 id를 붙여요
+function normalizeState(s) {
+  s.blocks = s.blocks || {}; s.nodeStats = s.nodeStats || {}; s.pairs = s.pairs || []; s.glossary = s.glossary || []; s.tomb = s.tomb || {};
+  s.pairs.forEach(p => { if (!p.id) p.id = newId(); });
+  s.glossary.forEach(g => { if (!g.id) g.id = newId(); if (!g.u) g.u = 0; });
+  return s;
+}
+normalizeState(S);
+
+// ───────── 유틸 ─────────
+const $ = (sel, el = document) => el.querySelector(sel);
+function h(tag, attrs = {}, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) el.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  return el;
+}
+function todayStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function addDays(s, n) { const d = new Date(s + "T00:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function fmtDate(s) { const d = new Date(s + "T00:00:00"); return (d.getMonth()+1) + "." + String(d.getDate()).padStart(2,"0") + "(" + "일월화수목금토"[d.getDay()] + ")"; }
+function dday() { return Math.round((new Date(EXAM_DATE+"T00:00:00") - new Date(todayStr()+"T00:00:00")) / 86400000); }
+function danHalf(b) { const [a, z] = b.dan; const mid = a + Math.floor((z - a) / 2); return `p.${a}~${mid}`; }
+function alertBox(msg) { const m = $("#msg"); if (m) { m.textContent = msg; m.classList.remove("hidden"); } else console.log(msg); }
+function isDone(id) { return (S.blocks[id]?.attempts || []).length > 0; }
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+// ───────── 지도(트리) ─────────
+// 한 줄 = 한 칸. 교재 번호로 계층을 자동으로 정해요:
+//   1. → 0단계 · (1) → 1단계 · 1) → 2단계 · ①/가. → 3단계 · 보안멘토 → 바로 위 칸의 하위
+// 번호가 없는 줄은 들여쓰기(스페이스 2칸 또는 Tab)로 계층. 앞의 - * · 는 무시.
+function lineDepth(label, raw, prevDepth) {
+  if (/^\d+\.\s*\S/.test(label)) return 0;
+  if (/^\(\d+\)/.test(label)) return 1;
+  if (/^\d+\)/.test(label)) return 2;
+  if (/^([①-⑳]|[가-하]\.|[가-하]\))/.test(label)) return 3;
+  if (/^(보안\s*멘토|💡)/.test(label)) return prevDepth == null ? 0 : prevDepth + 1;
+  const ws = raw.match(/^[ \t]*/)[0].replace(/\t/g, "  ");
+  return Math.floor(ws.length / 2);
+}
+function parseOutline(text) {
+  const nodes = []; const stack = []; const seen = {};
+  let prevDepth = null, prevHeadDepth = null;
+  for (const raw of (text || "").split("\n")) {
+    if (!raw.trim()) continue;
+    const label = raw.trim().replace(/^[-*·•]\s*/, "");
+    if (!label) continue;
+    const isMentor = /^(보안\s*멘토|💡)/.test(label);
+    // 보안멘토가 연달아 나오면 같은 제목 아래 형제로 둬요
+    let depth = lineDepth(label, raw, isMentor ? prevHeadDepth : prevDepth);
+    depth = Math.min(depth, stack.length);
+    while (stack.length > depth) stack.pop();
+    let path = [...stack, label].join(" > ");
+    if (seen[path]) { seen[path]++; path += ` (${seen[path]})`; } else seen[path] = 1;
+    nodes.push({ label, depth, path, mentor: isMentor });
+    stack.push(label);
+    prevDepth = depth;
+    if (!isMentor) prevHeadDepth = depth;
+  }
+  return nodes;
+}
+
+// ───────── 채점 (글자 비교) ─────────
+function norm(s) { return (s || "").toLowerCase().replace(/[\s\-_.,·()\[\]{}'"`:;\\]/g, ""); }
+function kwList(str) { return (str || "").split(/[,\n]/).map(s => s.trim()).filter(Boolean); }
+function alts(kw) { return kw.split("|").map(s => s.trim()).filter(Boolean); }
+function tokMatch(tok, alt) {
+  const a = norm(tok), b = norm(alt);
+  if (!a || !b) return false;
+  return a === b || (b.length >= 2 && a.includes(b)) || (a.length >= 3 && b.includes(a));
+}
+function grade(blockId, answers) {
+  const b = blk(blockId); const nodes = parseOutline(b.outline);
+  const results = []; let hit = 0, total = 0;
+  for (const n of nodes) {
+    const kws = kwList(b.kw[n.path]);
+    if (!kws.length) continue;
+    const text = answers[n.path] || ""; const toks = kwList(text); const whole = norm(text);
+    const kwRes = kws.map(kw => ({ kw, hit: alts(kw).some(al => (norm(al).length >= 2 && whole.includes(norm(al))) || toks.some(t => tokMatch(t, al))) }));
+    const misplaced = [], extra = [];
+    for (const t of toks) {
+      if (kws.some(kw => alts(kw).some(al => tokMatch(t, al)))) continue;
+      const other = nodes.find(o => o.path !== n.path && kwList(b.kw[o.path]).some(kw => alts(kw).some(al => tokMatch(t, al))));
+      if (other) misplaced.push({ tok: t, where: other.label }); else extra.push(t);
+    }
+    const h_ = kwRes.filter(k => k.hit).length; hit += h_; total += kws.length;
+    results.push({ node: n, kwRes, misplaced, extra, text, hits: h_, total: kws.length });
+  }
+  return { results, hit, total };
+}
+function recordStats(blockId, g) {
+  for (const r of g.results) {
+    const k = blockId + "::" + r.node.path;
+    const st = S.nodeStats[k] || (S.nodeStats[k] = { hit: 0, miss: 0 });
+    if (r.hits === r.total && !r.misplaced.length) st.hit++; else st.miss++;
+  }
+}
+
+// ───────── 타이머 ─────────
+const T = { step: 0, left: 600, total: 600, running: false, iv: null };
+function beep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.35, 0.7].forEach(t => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 880; o.connect(g); g.connect(ctx.destination); g.gain.value = 0.15; o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.2); });
+  } catch (e) {}
+}
+function timerTick() {
+  if (!T.running) return;
+  T.left--;
+  if (T.left <= 0) {
+    T.running = false; clearInterval(T.iv); T.left = 0; beep();
+    document.title = "⏰ " + STEPS[T.step].name + " 끝!";
+  }
+  paintTimer();
+}
+function timerSet(step) { T.step = step; T.total = stepMins(BLOCK[studyId])[step] * 60; T.left = T.total; T.running = false; clearInterval(T.iv); document.title = "실기 연습장"; paintTimer(); }
+function timerToggle() {
+  if (T.running) { T.running = false; clearInterval(T.iv); }
+  else { if (T.left <= 0) T.left = T.total; T.running = true; clearInterval(T.iv); T.iv = setInterval(timerTick, 1000); document.title = "실기 연습장"; }
+  paintTimer();
+}
+function paintTimer() {
+  const el = $("#timer"); if (!el) return;
+  const m = Math.floor(T.left / 60), s = T.left % 60;
+  $(".clock", el).textContent = `${m}:${String(s).padStart(2, "0")}`;
+  $(".tname", el).textContent = STEPS[T.step].name + " 타이머";
+  $(".bar > i", el).style.width = (100 - T.left / T.total * 100) + "%";
+  $(".tbtn", el).textContent = T.running ? "일시정지" : (T.left <= 0 ? "다시 시작" : "시작");
+}
+function timerEl() {
+  return h("div", { class: "timer", id: "timer" },
+    h("span", { class: "tname muted small" }), h("span", { class: "clock" }),
+    h("div", { class: "bar" }, h("i")),
+    h("button", { class: "btn small tbtn", onclick: timerToggle }),
+    h("button", { class: "btn ghost small", onclick: () => timerSet(T.step) }, "초기화"));
+}
+
+// ───────── 화면 전환 ─────────
+let view = "today";
+let studyId = null, studyStep = 0;
+function go(v) { view = v; render(); }
+document.getElementById("nav").addEventListener("click", e => { const v = e.target.dataset?.view; if (v) go(v); });
+
+function render() {
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.view === view));
+  const done = BLOCKS.filter(b => isDone(b.id)).length;
+  const d = dday();
+  $("#headerSub").textContent = `오늘 ${fmtDate(todayStr())} · 실기 11.14(토)까지 D-${d} · 1회독 ${done}/${BLOCKS.length} 블록 완료`;
+  $("#syncHead").textContent = syncOn() ? " · ☁ " + syncText() : "";
+  const main = $("#main"); main.innerHTML = "";
+  main.append(h("div", { id: "msg", class: "card hidden", style: "border-color:var(--warn)" }));
+  ({ today: viewToday, study: viewStudy, morning: viewMorning, quiz: viewQuiz, glossary: viewGlossary, pairs: viewPairs, records: viewRecords, help: viewHelp })[view](main);
+  paintTimer();
+}
+
+// ───────── 오늘 ─────────
+function viewToday(main) {
+  const t = todayStr();
+  const todays = BLOCKS.filter(b => b.date === t);
+  const card = h("div", { class: "card" }, h("h2", {}, `오늘 ${fmtDate(t)}`));
+  // 확인 지점
+  if (t >= "2026-10-18" && t <= "2026-10-19") {
+    const ok = ["B1","B2","B3","B4","B5","B6","B7","B8","B9","B10","B11","B12"].every(isDone);
+    card.append(h("p", {}, ok ? "✅ 확인 지점 통과: B1~B12 완료. 계획 그대로 가요."
+      : "⚠️ 확인 지점: 10.18 밤까지 B12를 못 끝냈으면, 훑기 블록(B21·B38·B39)을 각 30분으로 줄이고 그 시간에 밀린 블록을 해요."));
+  }
+  if (t === "2026-10-19") card.append(h("p", {}, h("b", {}, "📝 오늘 아침 첫 일정: 실기 원서 접수 (10.19 ~ 10.22)")));
+  if (t === "2026-10-22") card.append(h("p", {}, h("b", {}, "📝 원서 접수 마감일이에요. 접수했는지 확인하세요.")));
+  if (!todays.length) {
+    const next = BLOCKS.find(b => b.date > t);
+    card.append(h("p", { class: "muted" }, next ? `오늘 배정된 블록이 없어요. 다음은 ${fmtDate(next.date)} ${next.id}부터예요.` : "1회독 블록 일정이 끝났어요. 총정리는 \"아침 복습\"에서 날짜를 골라 트리를 다시 채우세요."));
+  } else {
+    const tb = h("table", {}, h("tr", {}, h("th", {}, "순서"), h("th", {}, "블록"), h("th", {}, "이론편"), h("th", {}, "시간"), h("th", {}, "상태"), h("th", {})));
+    todays.forEach((b, i) => tb.append(h("tr", {},
+      h("td", {}, `${i + 1}번째`),
+      h("td", {}, h("b", {}, b.id), " ", b.title),
+      h("td", {}, "p." + b.pages + ` (${b.pn}쪽)`),
+      h("td", {}, fmtMin(blockMin(b))),
+      h("td", {}, isDone(b.id) ? h("span", { class: "pill done" }, "완료") : h("span", { class: "pill" }, "아직")),
+      h("td", {}, h("button", { class: "btn small", onclick: () => { studyId = b.id; studyStep = 0; timerSet(0); go("study"); } }, "공부 시작")))));
+    card.append(tb);
+    card.append(h("p", { class: "small muted" }, `오늘 블록 시간 합계 ${fmtMin(todays.reduce((a, b) => a + blockMin(b), 0))} (휴식 포함, 점심·저녁 제외). 블록마다 쪽수가 달라서 시간도 달라요.`));
+    card.append(h("h3", {}, "저녁 할 일"));
+    card.append(h("ul", {},
+      h("li", {}, "18:30 ", h("b", {}, "저녁 퀴즈"), ": 오늘 블록을 섞어서 키워드 퀴즈 (1시간)"),
+      h("li", {}, "19:30 ", h("b", {}, "단답형"), ": " + todays.map(b => `${b.id} ${danHalf(b)}`).join(" · ") + " (배정량의 앞 절반)")));
+  }
+  main.append(card);
+  const y = addDays(t, -1); const yb = BLOCKS.filter(b => b.date === y);
+  if (yb.length) main.append(h("div", { class: "card" }, h("h2", {}, "아침 복습 (07:30)"),
+    h("p", {}, `어제(${fmtDate(y)}) 블록 ${yb.map(b => b.id).join(", ")}의 트리를 다시 채워요. `),
+    h("button", { class: "btn", onclick: () => go("morning") }, "아침 복습 하러 가기")));
+}
+
+// ───────── 블록 공부 ─────────
+function viewStudy(main) {
+  if (!studyId) { const t = todayStr(); studyId = (BLOCKS.find(b => b.date === t && !isDone(b.id)) || BLOCKS.find(b => !isDone(b.id)) || BLOCKS[0]).id; }
+  const b = BLOCK[studyId];
+  const sel = h("select", { onchange: e => { studyId = e.target.value; studyStep = 0; timerSet(0); render(); } },
+    BLOCKS.map(x => h("option", { value: x.id, selected: x.id === studyId ? "" : false }, `${x.id} · ${fmtDate(x.date)} · ${x.title}${isDone(x.id) ? " ✓" : ""}`)));
+  main.append(h("div", { class: "card" },
+    h("div", { class: "row" }, h("b", {}, "블록 선택"), sel),
+    h("p", { style: "margin:10px 0 0" }, h("b", {}, `${b.id} · ${b.part}`), ` — ${b.title}`),
+    h("p", { class: "muted small", style: "margin:2px 0" }, `이론편 p.${b.pages} (${b.pn}쪽, 블록 시간 ${fmtMin(blockMin(b))}) · 저녁 단답 ${danHalf(b)} (전체 배정 p.${b.dan[0]}~${b.dan[1]})`),
+    h("div", { class: "steps" }, STEPS.map((s, i) => h("button", { class: i === studyStep ? "on" : "", onclick: () => { studyStep = i; timerSet(i); render(); } },
+      h("b", {}, s.name), h("span", { class: "muted small" }, stepMins(b)[i] + "분")))),
+    timerEl()));
+  const area = h("div", { class: "card" }); main.append(area);
+  [stepStructure, stepRead, stepRecall, stepRest][studyStep](area, b);
+}
+
+function stepStructure(area, b) {
+  const data = blk(b.id);
+  area.append(h("h2", {}, "① 구조: 지도 만들기 (10분)"),
+    h("p", {}, h("b", {}, "이론편"), "을 펴요 (문제편 아님). ", h("b", {}, "본문은 읽지 않아요."), " 이론편 ", h("b", {}, `p.${b.pages}`), "를 처음부터 끝까지 빠르게 넘기면서 ", h("b", {}, "제목만"), " 옮겨 적어요."),
+    h("ol", {},
+      h("li", {}, "본문 제목을 ", h("b", {}, "교재 번호까지 그대로"), " 한 줄씩 적어요. 한 줄이 지도의 한 칸이에요."),
+      h("li", {}, h("b", {}, "번호만 맞게 쓰면 들여쓰기는 자동"), "이에요: ", h("b", {}, "1."), " → ", h("b", {}, "(1)"), " → ", h("b", {}, "1)"), " → ", h("b", {}, "①"), " 순서로 한 단계씩 안쪽으로 들어가요."),
+      h("li", {}, h("b", {}, "보안멘토 박스"), "도 칸으로 적어요. ", h("b", {}, "\"보안멘토: 주제\""), "로 쓰면 바로 위 제목의 하위 칸이 돼요. 시험 포인트를 짚는 박스라 꼭 넣어요."),
+      h("li", {}, "넘기면서 ", h("b", {}, "표와 그림이 어디 있는지만"), " 눈으로 봐 둬요. 내용은 읽지 않아요.")),
+    h("ul", { class: "small muted" },
+      h("li", {}, "블록 하나에 보통 15 ~ 30칸이 나와요. ② 읽기 때 ", h("b", {}, "키워드는 가장 작은 제목(1), 2) …)과 보안멘토 칸에만"), " 적어요. 1.이나 (1) 같은 큰 제목 칸은 비워 둬도 돼요 (비운 칸은 채점에서 빠져요)."),
+      h("li", {}, "번호가 없는 제목은 스페이스 2칸(또는 Tab)으로 들여 써요."),
+      h("li", {}, "10분 안에 끝내요. 덜 끝났으면 ② 읽으면서 추가해도 돼요. 같은 이름의 칸은 키워드가 그대로 남아요.")));
+  const ta = h("textarea", { placeholder: "예) 교재 제목을 번호까지 그대로\n1. 윈도우 기본 학습\n(1) 윈도우 인증과정\n1) 윈도우 인증 구성요소\n2) 로컬 인증\n3) 원격(도메인) 인증\n4) SAM 파일 접근 통제 설정\n보안멘토: SAM 파일\n(2) 윈도우 보안 식별자(SID)\n1) 개요" });
+  ta.value = data.outline;
+  ta.addEventListener("keydown", e => { if (e.key === "Tab") { e.preventDefault(); const s = ta.selectionStart; ta.setRangeText("  ", s, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input")); } });
+  const preview = h("div");
+  const paint = () => { preview.innerHTML = ""; const nodes = parseOutline(ta.value); preview.append(h("p", { class: "muted small" }, `미리보기 · 칸 ${nodes.length}개`), treeView(nodes, () => null)); };
+  ta.addEventListener("input", () => { data.outline = ta.value; data.u = Date.now(); save(); paint(); });
+  area.append(ta, preview,
+    h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn", onclick: () => { studyStep = 1; timerSet(1); render(); } }, "다음: ② 읽기 →")));
+  paint();
+}
+
+function treeView(nodes, inner) {
+  const ul = h("ul", { class: "tree" });
+  for (const n of nodes) {
+    const li = h("li", { class: "node", style: `margin-left:${n.depth * 22}px`, "data-path": n.path }, h("div", { class: "label" }, n.mentor ? "💡 " : "", n.label));
+    const x = inner(n, li); if (x) li.append(x);
+    ul.append(li);
+  }
+  return ul;
+}
+
+function stepRead(area, b) {
+  const data = blk(b.id); const nodes = parseOutline(data.outline);
+  const pm = String(b.pages).replace("끝", "850").match(/^(\d+)~(\d+)$/);
+  const halfPage = pm ? Math.round((+pm[1] + +pm[2]) / 2) : null;
+  const rMin = stepMins(b)[1];
+  area.append(h("h2", {}, `② 읽기: 이해하며 읽고, 소제목마다 1분 메모 (${rMin}분)`),
+    h("p", {}, h("b", {}, `${rMin}분은 거의 다 읽는 데 쓰는 시간이에요.`), " 메모는 소제목 하나를 다 읽은 뒤에 1분씩만 해요."),
+    h("h3", {}, "소제목 하나를 이렇게 돌려요 (평균 5 ~ 7분)"),
+    h("ol", {},
+      h("li", {}, h("b", {}, "읽기 4 ~ 6분"), ": ★ 부분은 꼼꼼히, 나머지는 굵은 글씨·표·그림 위주로 읽어요. 개념마다 머릿속으로 물어봐요. ",
+        h("b", {}, "뭐야? 어떻게 동작해? 왜 필요하고 뭐가 위험해?"), " 답이 안 나오면 그 문단만 한 번 더 읽어요. 외우지 말고 이해만 해요."),
+      h("li", {}, h("b", {}, "메모 1분"), ": 책에서 눈을 떼고 \"방금 이 칸 뭐였지?\"를 3초 떠올린 다음, 아래 그 칸에 ", h("b", {}, "키워드 2 ~ 3개"), "를 쉼표로 적어요. 문장으로 쓰지 않아요."),
+      h("li", {}, "다음 소제목으로 넘어가요.")),
+    h("h3", {}, "키워드 고르는 법"),
+    h("p", {}, "한 칸에 이 세 종류에서 하나씩 고르면 돼요: ", h("b", {}, "① 이름·정의"), " · ", h("b", {}, "② 숫자·명령어·옵션·포트"), " · ", h("b", {}, "③ 왜·위험·대응 한 단어")),
+    h("p", { class: "small muted" }, "예) 특수 권한 칸 → SetUID|SUID, 4000, 소유자 권한으로 실행   (같은 뜻의 표현은 | 로 묶으면 둘 중 하나만 써도 맞음)"),
+    h("p", { class: "small" }, `⏱ 속도: 쪽당 3.5분 (${b.pn}쪽 → ${rMin}분). `, halfPage ? h("b", {}, `${Math.round(rMin / 2)}분이 지났을 때 p.${halfPage} 근처`) : "절반 시간에 절반 쪽수", `까지 와 있어야 해요. 늦었으면 남은 부분은 ★만 읽어요. ${rMin}분이 끝나면 다 못 읽었어도 멈춰요.`));
+  area.append(askPanel(b, nodes));
+  if (!nodes.length) { area.append(h("p", {}, "아직 지도가 없어요. ① 구조에서 소제목을 먼저 적어 주세요.")); return; }
+  area.append(h("h3", {}, "칸마다 키워드 메모"));
+  area.append(treeView(nodes, n => {
+    const inp = h("input", { type: "text", placeholder: "키워드, 키워드, 키워드" }); inp.value = data.kw[n.path] || "";
+    inp.addEventListener("input", () => { data.kw[n.path] = inp.value; data.u = Date.now(); save(); });
+    return inp;
+  }));
+  const filled = nodes.filter(n => kwList(data.kw[n.path]).length).length;
+  area.append(h("p", { class: "muted small" }, `키워드를 적은 칸 ${filled}/${nodes.length}개 · 키워드가 없는 칸은 채점에서 빠져요.`),
+    h("button", { class: "btn", onclick: () => { studyStep = 2; timerSet(2); render(); } }, "다음: ③ 인출 →"));
+}
+
+// ───────── 모르는 말 바로 묻기 (② 읽기) ─────────
+const ASK_MODES = [
+  ["easy", "쉬운 말로", "어려운 단어 없이, 처음 배우는 사람도 알 수 있게 쉬운 말로 풀어 줘."],
+  ["analogy", "비유·예시로", "일상생활 비유 하나와 구체적인 예시 하나로 설명해 줘."],
+  ["why", "왜 필요한지", "이게 왜 필요한지, 없거나 잘못되면 뭐가 위험한지, 어떻게 점검·대응하는지 순서대로 설명해 줘."],
+  ["diff", "비슷한 것과 차이", "비슷해서 헷갈리기 쉬운 개념이 있으면 무엇과 어떻게 다른지 비교해 줘."],
+];
+function makePrompt(b, path, text, mode) {
+  const m = ASK_MODES.find(x => x[0] === mode) || ASK_MODES[0];
+  return `정보보안기사 실기 공부 중이야. 알기사 실기 교재 「${b.title}」${path ? ` > ${path}` : ""} 부분을 읽다가 아래가 이해가 안 돼.\n\n"${text}"\n\n${m[2]}\n조건: 어려운 용어는 괄호 안에 쉬운 말로 풀어 주고, 6~8줄 이내로. 마지막 줄에 시험용 핵심 키워드 2~3개를 써 줘.`;
+}
+function copyText(txt, msg) {
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(
+    () => alertBox(msg),
+    () => { const ta = h("textarea"); ta.value = txt; document.body.append(ta); ta.select(); document.execCommand("copy"); ta.remove(); alertBox(msg); });
+}
+function glossaryOf(blockId) { return S.glossary.filter(g => g.block === blockId); }
+function glossaryList(items, editable) {
+  const ul = h("ul", { class: "small", style: "padding-left:18px" });
+  for (const g of items) {
+    const li = h("li", { style: "margin:4px 0" }, h("b", {}, g.term), g.path ? h("span", { class: "muted" }, `  (${g.block} · ${g.path})`) : h("span", { class: "muted" }, `  (${g.block})`));
+    if (editable) {
+      const inp = h("input", { type: "text", style: "width:100%;margin-top:2px", placeholder: "내 말로 한두 줄" }); inp.value = g.mine || "";
+      inp.addEventListener("input", () => { g.mine = inp.value; g.u = Date.now(); save(); });
+      li.append(inp, h("button", { class: "btn ghost small", style: "margin-top:2px", onclick: () => { S.glossary = S.glossary.filter(x => x !== g); S.tomb["g:" + g.id] = Date.now(); save(); render(); } }, "삭제"));
+    } else li.append(h("div", {}, g.mine || h("span", { class: "muted" }, "(아직 내 말 정리 없음)")));
+    ul.append(li);
+  }
+  return ul;
+}
+function askPanel(b, nodes) {
+  let mode = "easy";
+  const box = h("div", { class: "card", style: "background:var(--accent-soft);border-color:var(--accent)" });
+  const text = h("textarea", { style: "min-height:60px", placeholder: "모르는 단어나 이해 안 되는 문장을 그대로 적어요. 예) 커널 모드에서 동작하는 LSA가 SAM과 비교해 인증한다" });
+  const where = h("select", {}, h("option", { value: "" }, "어느 칸에서 나왔나요? (선택)"), nodes.map(n => h("option", { value: n.path }, n.path)));
+  const modeRow = h("div", { class: "row", style: "margin:6px 0" });
+  const paintModes = () => { modeRow.innerHTML = ""; modeRow.append(h("span", { class: "small muted" }, "질문 방식:"), ...ASK_MODES.map(m => h("button", { class: "btn small " + (m[0] === mode ? "" : "ghost"), onclick: () => { mode = m[0]; paintModes(); } }, m[1]))); };
+  paintModes();
+  const mine = h("textarea", { style: "min-height:50px", placeholder: "Claude 설명을 읽고 내 말로 한두 줄 정리해요. 예) LSA = 윈도우 로그인 검사관. 입력한 비밀번호를 SAM에 저장된 것과 대조함" });
+  const list = h("div");
+  const paintList = () => { list.innerHTML = ""; const g = glossaryOf(b.id); if (g.length) list.append(h("b", { class: "small" }, `이 블록 어휘장 (${g.length}개)`), glossaryList(g.slice().reverse(), false)); };
+  box.append(h("h3", { style: "margin-top:0" }, "❓ 모르는 말 바로 묻기"),
+    h("p", { class: "small", style: "margin:0 0 6px" }, "읽다가 단어나 문장이 이해 안 되면 ", h("b", {}, "1분 안에"), " 묻고 넘어가요. 이 페이지는 Claude에 직접 연결되지 않아서, ", h("b", {}, "질문 문장을 만들어 복사"), "해 줘요. Claude Code 채팅, claude.ai, 휴대폰 Claude 앱 어디든 붙여 넣으면 돼요."),
+    h("p", { class: "small muted", style: "margin:0 0 6px" }, "💡 문장이 길면 휴대폰 Claude 앱으로 그 문단을 사진 찍어서 \"쉬운 말로 풀어 줘\"라고 묻는 게 더 빨라요. 그때도 아래 \"내 말로 정리\"는 꼭 적어요."),
+    text, h("div", { class: "row", style: "margin-top:6px" }, where), modeRow,
+    h("div", { class: "row" },
+      h("button", { class: "btn", onclick: () => { if (!text.value.trim()) { alertBox("모르는 단어나 문장을 먼저 적어 주세요."); return; } copyText(makePrompt(b, where.value, text.value.trim(), mode), "질문을 복사했어요. Claude 창에 붙여 넣으세요."); } }, "질문 복사"),
+      h("a", { href: "https://claude.ai/new", target: "_blank", class: "btn ghost", style: "text-decoration:none" }, "claude.ai 열기")),
+    h("p", { class: "small", style: "margin:10px 0 4px" }, h("b", {}, "내 말로 정리"), " (설명을 읽은 뒤, 책·화면을 보지 말고 써요. 못 쓰겠으면 아직 이해가 덜 된 거예요)"),
+    mine,
+    h("div", { class: "row", style: "margin-top:6px" }, h("button", { class: "btn", onclick: () => {
+      if (!text.value.trim()) { alertBox("모르는 단어나 문장 칸이 비어 있어요."); return; }
+      const term = text.value.trim().length > 40 ? text.value.trim().slice(0, 40) + "…" : text.value.trim();
+      S.glossary.push({ id: newId(), u: Date.now(), term, full: text.value.trim(), mine: mine.value.trim(), block: b.id, path: where.value, date: todayStr(), known: 0, unknown: 0 });
+      save(); text.value = ""; mine.value = ""; paintList(); alertBox("어휘장에 저장했어요. 인출 단계와 저녁 퀴즈에서 다시 나와요.");
+    } }, "어휘장에 저장")),
+    list);
+  paintList();
+  return box;
+}
+
+// 인출 단계 끝: 어휘장 다시 설명하기
+function glossaryRecall(blockId) {
+  const items = glossaryOf(blockId); if (!items.length) return null;
+  const box = h("div", { class: "card" }, h("h3", { style: "margin-top:0" }, `📘 어휘장 다시 설명하기 (${items.length}개)`),
+    h("p", { class: "small muted" }, "읽기 때 물어본 말이에요. 책을 덮은 채로 내 말로 설명해 보고, \"보기\"로 내가 정리한 것과 비교해요."));
+  for (const g of items) {
+    const inp = h("input", { type: "text", style: "width:100%", placeholder: "내 말로 설명" });
+    const ans = h("div", { class: "small hidden", style: "margin-top:4px" }, "내 정리: ", h("b", {}, g.mine || "(정리 없음 — 어휘장 탭에서 채워 주세요)"),
+      h("span", {}, "  "), h("button", { class: "btn small", onclick: () => { g.known++; save(); ans.append(h("span", { class: "chip ok" }, "알았음")); } }, "알았음"),
+      h("button", { class: "btn ghost small", onclick: () => { g.unknown++; save(); ans.append(h("span", { class: "chip bad" }, "몰랐음")); } }, "몰랐음"));
+    box.append(h("div", { style: "margin:8px 0" }, h("b", {}, g.term), inp, h("button", { class: "btn ghost small", style: "margin-top:4px", onclick: () => ans.classList.remove("hidden") }, "보기"), ans));
+  }
+  return box;
+}
+
+// ───────── 어휘장 ─────────
+let glossFilter = "";
+function viewGlossary(main) {
+  const sel = h("select", { onchange: e => { glossFilter = e.target.value; render(); } },
+    h("option", { value: "" }, `전체 (${S.glossary.length}개)`),
+    BLOCKS.filter(b => glossaryOf(b.id).length).map(b => h("option", { value: b.id, selected: glossFilter === b.id ? "" : false }, `${b.id} · ${b.title} (${glossaryOf(b.id).length})`)));
+  const items = (glossFilter ? glossaryOf(glossFilter) : S.glossary).slice().reverse();
+  const weak = S.glossary.filter(g => g.unknown > g.known);
+  main.append(h("div", { class: "card" }, h("h2", {}, "어휘장"),
+    h("p", {}, "② 읽기의 \"모르는 말 바로 묻기\"에서 저장한 말이 모여요. ", h("b", {}, "내 말로 정리"), "는 여기서 고칠 수 있어요. 정리가 비어 있으면 인출·퀴즈에서 비교할 수 없으니 꼭 채워 두세요."),
+    h("div", { class: "row" }, h("b", {}, "범위"), sel),
+    weak.length ? h("p", { class: "small" }, `⚠️ "몰랐음"이 더 많은 말 ${weak.length}개: `, weak.map(g => h("span", { class: "chip bad" }, g.term))) : null));
+  main.append(h("div", { class: "card" }, items.length ? glossaryList(items, true) : h("p", { class: "muted" }, "아직 저장한 말이 없어요.")));
+}
+
+// 인출 화면 (블록 공부 · 아침 복습 · 총정리에서 같이 씀)
+function recallPanel(blockId, onFinish) {
+  const box = h("div"); const data = blk(blockId); const nodes = parseOutline(data.outline);
+  const gradable = nodes.filter(n => kwList(data.kw[n.path]).length);
+  if (!gradable.length) { box.append(h("p", {}, `${blockId}: 키워드를 적은 칸이 없어서 인출할 게 없어요. ② 읽기에서 키워드를 먼저 적어 주세요.`)); return box; }
+  const answers = {};
+  box.append(h("p", {}, h("b", {}, "책과 메모를 덮고"), " 칸마다 떠오르는 키워드를 쉼표로 적어요. 다 쓰면 채점을 눌러요."));
+  const tree = treeView(nodes, n => {
+    if (!kwList(data.kw[n.path]).length) return h("div", { class: "muted small" }, "(키워드 없음)");
+    const inp = h("input", { type: "text", placeholder: `키워드 ${kwList(data.kw[n.path]).length}개`, autocomplete: "off" });
+    inp.addEventListener("input", () => answers[n.path] = inp.value);
+    return inp;
+  });
+  const result = h("div");
+  const gbtn = h("button", { class: "btn", onclick: () => {
+    const g = grade(blockId, answers);
+    recordStats(blockId, g);
+    data.attempts.push({ date: todayStr(), time: new Date().toTimeString().slice(0, 5), hit: g.hit, total: g.total, missed: g.results.filter(r => r.hits < r.total).map(r => r.node.path) });
+    save();
+    paintResult(blockId, g, tree, result);
+    gbtn.disabled = true;
+    if (onFinish) onFinish(g);
+  } }, "채점");
+  box.append(tree, gbtn, result);
+  return box;
+}
+
+function paintResult(blockId, g, tree, result) {
+  for (const r of g.results) {
+    const li = tree.querySelector(`li[data-path="${CSS.escape(r.node.path)}"]`); if (!li) continue;
+    li.classList.add(r.hits === r.total && !r.misplaced.length ? "ok" : r.hits === 0 ? "bad" : "part");
+    const inp = li.querySelector("input"); if (inp) inp.disabled = true;
+    li.append(h("div", { class: "small" },
+      r.kwRes.map(k => h("span", { class: "chip " + (k.hit ? "ok" : "bad") }, (k.hit ? "✓ " : "빠짐 ") + k.kw)),
+      r.misplaced.map(m => h("span", { class: "chip warn" }, `섞임: "${m.tok}" → '${m.where}' 칸 키워드`)),
+      r.extra.map(x => h("span", { class: "chip gray" }, `메모에 없던 말: ${x}`))));
+  }
+  const pct = g.total ? Math.round(g.hit / g.total * 100) : 0;
+  const misses = g.results.filter(r => r.hits < r.total || r.misplaced.length);
+  result.innerHTML = "";
+  result.append(h("div", { class: "card", style: "margin:12px 0 0" },
+    h("div", { class: "score" }, `${g.hit} / ${g.total} (${pct}%)`),
+    h("p", { class: "small muted" }, "초록 = 다 맞음 · 노랑 = 일부 빠짐 또는 다른 칸 키워드가 섞임 · 빨강 = 하나도 못 씀 · 회색 = 메모에 없던 말 (틀렸다는 뜻은 아니에요)"),
+    misses.length ? h("div", {}, h("b", {}, "지금 책을 펴서 이 칸만 다시 확인하세요"),
+      h("ul", {}, misses.map(r => h("li", {}, r.node.path, " — ", r.kwRes.filter(k => !k.hit).map(k => k.kw).join(", ") || "섞인 키워드 확인"))))
+      : h("p", {}, "🎉 빠진 칸이 없어요."),
+    h("div", { class: "row" },
+      h("button", { class: "btn ghost", onclick: () => copyResult(blockId, g) }, "결과 복사 (Claude Code에 붙여 넣기용)"),
+      h("button", { class: "btn ghost", onclick: () => { go("pairs"); } }, "헷갈리는 쌍 등록하러 가기"))));
+}
+
+function copyResult(blockId, g) {
+  const b = BLOCK[blockId];
+  const lines = [`[정보보안기사 실기 인출 결과] ${b.id} ${b.title} (이론편 p.${b.pages}) · ${g.hit}/${g.total}`, ""];
+  for (const r of g.results) {
+    lines.push(`■ ${r.node.path}`);
+    lines.push(`  내가 쓴 답: ${r.text || "(비움)"}`);
+    lines.push(`  메모 키워드: ${r.kwRes.map(k => (k.hit ? "✓" : "✗") + k.kw).join(", ")}`);
+    if (r.misplaced.length) lines.push(`  섞임: ${r.misplaced.map(m => m.tok + "→" + m.where).join(", ")}`);
+  }
+  lines.push("", "위 결과를 보고, 빠진 개념과 내가 잘못 이해한 부분을 설명해 줘.");
+  const txt = lines.join("\n");
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(
+    () => alertBox("결과를 복사했어요. Claude Code 채팅에 붙여 넣으세요."),
+    () => { const ta = h("textarea"); ta.value = txt; document.body.append(ta); ta.select(); document.execCommand("copy"); ta.remove(); alertBox("결과를 복사했어요."); });
+}
+
+function stepRecall(area, b) {
+  const cMin = stepMins(b)[2], c1 = Math.round(cMin * 0.4), c2 = Math.round(cMin * 0.83);
+  area.append(h("h2", {}, `③ 인출: 덮고 쓰기 → 채점 → 틀린 칸만 다시 (${cMin}분)`),
+    h("table", {},
+      h("tr", {}, h("td", {}, h("b", {}, `0 ~ ${c1}분`)), h("td", {}, h("b", {}, "책과 메모를 덮고"), " 아래 칸을 채워요. 모르면 비워 두고 다음 칸으로 가요.")),
+      h("tr", {}, h("td", {}, h("b", {}, `${c1}분`)), h("td", {}, h("b", {}, "채점"), "을 눌러요.")),
+      h("tr", {}, h("td", {}, h("b", {}, `${c1} ~ ${c2}분`)), h("td", {}, h("b", {}, "노랑·빨강 칸만"), " 책을 펴서 그 소제목을 다시 읽어요 (칸마다 1 ~ 2분). 왜 못 떠올렸는지 구분해요.",
+        h("ul", { class: "small" },
+          h("li", {}, h("b", {}, "이해를 못 했다"), " → 뭐야·어떻게·왜로 다시 읽기. 그래도 모르면 \"결과 복사\" → Claude Code에 질문"),
+          h("li", {}, h("b", {}, "이해는 했는데 까먹었다"), " → 키워드만 다시 보기"),
+          h("li", {}, h("b", {}, "다른 개념과 섞였다"), " (노랑 '섞임') → \"헷갈리는 쌍\"에 등록")))),
+      h("tr", {}, h("td", {}, h("b", {}, `${c2} ~ ${cMin}분`)), h("td", {}, "아래 ", h("b", {}, "\"다시 인출하기\""), "를 눌러 틀린 칸 위주로 한 번 더 채워요."))));
+  area.append(recallPanel(b.id, () => {}));
+  const gr = glossaryRecall(b.id); if (gr) area.append(gr);
+  area.append(h("div", { class: "row", style: "margin-top:10px" },
+    h("button", { class: "btn ghost", onclick: () => render() }, "다시 인출하기"),
+    h("button", { class: "btn", onclick: () => { studyStep = 3; timerSet(3); render(); } }, "다음: ④ 휴식 →")));
+}
+
+function stepRest(area, b) {
+  const t = todayStr(); const todays = BLOCKS.filter(x => x.date === t);
+  const next = todays.find(x => !isDone(x.id) && x.id !== b.id);
+  area.append(h("h2", {}, "④ 휴식 (10분)"),
+    h("p", {}, isDone(b.id) ? `✅ ${b.id} 완료로 기록됐어요.` : `⚠️ ${b.id}는 아직 인출 채점 기록이 없어요. ③에서 채점을 한 번 눌러야 완료로 기록돼요.`),
+    h("p", {}, "화면에서 눈을 떼고 쉬세요. 타이머 10분이 끝나면 다음 블록을 시작해요."),
+    next ? h("button", { class: "btn", onclick: () => { studyId = next.id; studyStep = 0; timerSet(0); render(); } }, `다음 블록: ${next.id} 시작 →`)
+         : h("button", { class: "btn", onclick: () => go("today") }, "오늘 화면으로"));
+}
+
+// ───────── 아침 복습 / 총정리 ─────────
+let morningDate = null, morningIdx = 0;
+function viewMorning(main) {
+  if (!morningDate) morningDate = addDays(todayStr(), -1);
+  const dates = [...new Set(BLOCKS.map(b => b.date))];
+  const parts = [...new Set(BLOCKS.map(b => b.part))];
+  const sel = h("select", { onchange: e => { morningDate = e.target.value; morningIdx = 0; render(); } },
+    dates.map(d => h("option", { value: d, selected: d === morningDate ? "" : false }, `${fmtDate(d)} 블록`)),
+    parts.map(p => h("option", { value: "part:" + p, selected: morningDate === "part:" + p ? "" : false }, `총정리 · ${p} 전체`)));
+  const list = morningDate.startsWith("part:") ? BLOCKS.filter(b => b.part === morningDate.slice(5)) : BLOCKS.filter(b => b.date === morningDate);
+  const card = h("div", { class: "card" }, h("h2", {}, "아침 복습 · 총정리"),
+    h("p", { class: "small muted" }, "아침에는 어제 블록을, 10.28 오후 총정리 때는 PART 전체를 골라서 트리를 다시 채워요. 결과는 기록에 남고, 자주 틀린 칸은 저녁 퀴즈에서 먼저 나와요."),
+    h("div", { class: "row" }, h("b", {}, "범위"), sel));
+  main.append(card);
+  if (!list.length) { main.append(h("div", { class: "card" }, "그 날짜에는 블록이 없어요.")); return; }
+  if (morningIdx >= list.length) morningIdx = 0;
+  const b = list[morningIdx];
+  const area = h("div", { class: "card" },
+    h("div", { class: "row" }, list.map((x, i) => h("button", { class: "btn small " + (i === morningIdx ? "" : "ghost"), onclick: () => { morningIdx = i; render(); } }, x.id))),
+    h("h3", {}, `${b.id} · ${b.title}`));
+  area.append(recallPanel(b.id));
+  const gr = glossaryRecall(b.id); if (gr) area.append(gr);
+  if (morningIdx < list.length - 1) area.append(h("button", { class: "btn ghost", style: "margin-top:10px", onclick: () => { morningIdx++; render(); } }, "다음 블록 →"));
+  main.append(area);
+  const recentPairs = S.pairs.slice(-10).reverse();
+  if (recentPairs.length) main.append(h("div", { class: "card" }, h("h3", {}, "헷갈리는 쌍 (최근 10개)"), pairsTable(recentPairs, false)));
+}
+
+// ───────── 저녁 퀴즈 ─────────
+let Q = null;
+function viewQuiz(main) {
+  const t = todayStr();
+  const dates = [...new Set(BLOCKS.map(b => b.date))];
+  if (!Q) {
+    let chosen = dates.includes(t) ? t : (dates.filter(d => d < t).pop() || dates[0]);
+    const sel = h("select", {}, dates.map(d => h("option", { value: d, selected: d === chosen ? "" : false }, `${fmtDate(d)} 블록 (${BLOCKS.filter(b => b.date === d).map(b => b.id).join(", ")})`)),
+      h("option", { value: "all" }, "지금까지 공부한 전체 블록"));
+    const weakFirst = h("input", { type: "checkbox", checked: "" });
+    const withGloss = h("input", { type: "checkbox", checked: "" });
+    main.append(h("div", { class: "card" }, h("h2", {}, "저녁 퀴즈: 섞어서 키워드 떠올리기"),
+      h("p", {}, "오늘 블록의 칸들이 순서 없이 하나씩 나와요. 칸 이름(경로)을 보고 키워드를 적어요. 블록과 순서가 섞여 있어서, 진짜 기억하는지 확인할 수 있어요."),
+      h("div", { class: "row" }, h("b", {}, "범위"), sel),
+      h("label", { class: "row small", style: "margin-top:6px" }, weakFirst, "자주 틀린 칸 먼저"),
+      h("label", { class: "row small", style: "margin-top:2px" }, withGloss, "어휘장 카드도 섞기 (내 말로 설명 → 내 정리와 비교)"),
+      h("button", { class: "btn", style: "margin-top:10px", onclick: () => {
+        const ids = sel.value === "all" ? BLOCKS.filter(b => blk(b.id).outline).map(b => b.id) : BLOCKS.filter(b => b.date === sel.value).map(b => b.id);
+        let items = [];
+        for (const id of ids) { const d = blk(id); for (const n of parseOutline(d.outline)) if (kwList(d.kw[n.path]).length) items.push({ id, node: n }); }
+        items = shuffle(items);
+        if (weakFirst.checked) items.sort((a, b) => { const sa = S.nodeStats[a.id + "::" + a.node.path] || { hit: 0, miss: 0 }, sb = S.nodeStats[b.id + "::" + b.node.path] || { hit: 0, miss: 0 }; return (sb.miss - sb.hit) - (sa.miss - sa.hit); });
+        if (withGloss.checked) {
+          const gs = shuffle(S.glossary.filter(g => ids.includes(g.block)));
+          // 어휘 카드는 키워드 카드 사이사이에 끼워 넣어요
+          gs.forEach((g, k) => items.splice(Math.min(items.length, Math.round((k + 1) * items.length / (gs.length + 1)) + k), 0, { type: "g", g }));
+        }
+        if (!items.length) { alertBox("이 범위에는 키워드를 적은 칸이나 어휘장 카드가 없어요."); return; }
+        Q = { items, i: 0, hit: 0, total: 0, wrong: [] }; render();
+      } }, "시작")));
+    return;
+  }
+  if (Q.i >= Q.items.length) {
+    main.append(h("div", { class: "card" }, h("h2", {}, "퀴즈 끝"),
+      h("div", { class: "score" }, `키워드 ${Q.hit} / ${Q.total}`),
+      Q.wrong.length ? h("div", {}, h("b", {}, "다시 볼 칸"), h("ul", {}, Q.wrong.map(w => h("li", {}, `${w.id} · ${w.node.path} — ${w.missed.join(", ")}`)))) : h("p", {}, "🎉 다 맞았어요."),
+      h("button", { class: "btn", onclick: () => { Q = null; render(); } }, "처음으로")));
+    return;
+  }
+  const it = Q.items[Q.i];
+  if (it.type === "g") {
+    const g = it.g;
+    const inp = h("textarea", { style: "min-height:60px", placeholder: "내 말로 설명해 보세요" });
+    const out = h("div");
+    const mark = ok => { if (ok) g.known++; else { g.unknown++; Q.wrong.push({ id: g.block, node: { path: "어휘: " + g.term }, missed: ["내 말로 설명"] }); } save(); Q.i++; render(); };
+    main.append(h("div", { class: "card" },
+      h("div", { class: "muted small" }, `${Q.i + 1} / ${Q.items.length} · 어휘장 카드`),
+      h("div", { class: "qcard" }, h("div", { class: "path" }, `${g.block}${g.path ? " · " + g.path : ""}`), "📘 ", h("b", {}, g.term)),
+      inp, out,
+      h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn", onclick: e => {
+        e.target.disabled = true;
+        out.append(h("div", { class: "qcard" }, h("div", { class: "path" }, "내가 정리한 것"), g.mine || "(정리 없음 — 어휘장 탭에서 채워 주세요)"),
+          h("div", { class: "row" }, h("button", { class: "btn", onclick: () => mark(true) }, "알았음"), h("button", { class: "btn ghost", onclick: () => mark(false) }, "몰랐음")));
+      } }, "내 정리 보기"), h("button", { class: "btn ghost", onclick: () => { Q.i = Q.items.length; render(); } }, "그만하기"))));
+    setTimeout(() => inp.focus(), 0);
+    return;
+  }
+  const d = blk(it.id); const kws = kwList(d.kw[it.node.path]);
+  const inp = h("input", { type: "text", placeholder: `키워드 ${kws.length}개`, style: "width:100%", autocomplete: "off" });
+  const out = h("div");
+  let checked = false;
+  const check = () => {
+    if (checked) { Q.i++; render(); return; }
+    checked = true;
+    const toks = kwList(inp.value), whole = norm(inp.value);
+    const res = kws.map(kw => ({ kw, hit: alts(kw).some(al => (norm(al).length >= 2 && whole.includes(norm(al))) || toks.some(t => tokMatch(t, al))) }));
+    const hits = res.filter(r => r.hit).length;
+    Q.hit += hits; Q.total += kws.length;
+    const st = S.nodeStats[it.id + "::" + it.node.path] || (S.nodeStats[it.id + "::" + it.node.path] = { hit: 0, miss: 0 });
+    if (hits === kws.length) st.hit++; else { st.miss++; Q.wrong.push({ id: it.id, node: it.node, missed: res.filter(r => !r.hit).map(r => r.kw) }); }
+    save();
+    out.append(h("div", { style: "margin-top:8px" }, res.map(r => h("span", { class: "chip " + (r.hit ? "ok" : "bad") }, (r.hit ? "✓ " : "빠짐 ") + r.kw))));
+    btn.textContent = "다음 (Enter)";
+  };
+  const btn = h("button", { class: "btn", style: "margin-top:10px", onclick: check }, "확인 (Enter)");
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); check(); } });
+  main.append(h("div", { class: "card" },
+    h("div", { class: "muted small" }, `${Q.i + 1} / ${Q.items.length} · 지금까지 ${Q.hit}/${Q.total}`),
+    h("div", { class: "qcard" }, h("div", { class: "path" }, `${it.id} · ${BLOCK[it.id].title}`), h("b", {}, it.node.path)),
+    inp, out, h("div", { class: "row" }, btn, h("button", { class: "btn ghost", style: "margin-top:10px", onclick: () => { Q.i = Q.items.length; render(); } }, "그만하기"))));
+  setTimeout(() => inp.focus(), 0);
+}
+
+// ───────── 헷갈리는 쌍 ─────────
+function pairsTable(list, editable) {
+  const tb = h("table", {}, h("tr", {}, h("th", {}, "A"), h("th", {}, "B"), h("th", {}, "차이 (내 말로)"), h("th", {}, "날짜"), editable ? h("th", {}) : null));
+  for (const p of list) tb.append(h("tr", {}, h("td", {}, h("b", {}, p.a)), h("td", {}, h("b", {}, p.b)), h("td", {}, p.note), h("td", { class: "small muted" }, fmtDate(p.date)),
+    editable ? h("td", {}, h("button", { class: "btn ghost small", onclick: () => { S.pairs = S.pairs.filter(x => x !== p); S.tomb["p:" + p.id] = Date.now(); save(); render(); } }, "삭제")) : null));
+  return tb;
+}
+function viewPairs(main) {
+  const a = h("input", { type: "text", placeholder: "예) OSPF" }), b = h("input", { type: "text", placeholder: "예) OCSP" });
+  const note = h("input", { type: "text", placeholder: "예) OSPF = 링크 상태 라우팅 프로토콜 / OCSP = 인증서 폐기 여부 실시간 조회", style: "flex:1;min-width:240px" });
+  main.append(h("div", { class: "card" }, h("h2", {}, "헷갈리는 쌍"),
+    h("p", {}, "이름이 비슷하거나 자꾸 섞이는 두 개념을 적어요. 차이는 ", h("b", {}, "교재를 보고 내 말로"), " 한 줄로 써요. 아침 복습 화면에 최근 것이 다시 나와요."),
+    h("div", { class: "row" }, a, b, note, h("button", { class: "btn", onclick: () => {
+      if (!a.value.trim() || !b.value.trim()) { alertBox("A와 B를 둘 다 적어 주세요."); return; }
+      S.pairs.push({ id: newId(), a: a.value.trim(), b: b.value.trim(), note: note.value.trim(), date: todayStr() }); save(); render();
+    } }, "등록"))));
+  if (S.pairs.length) main.append(h("div", { class: "card" }, pairsTable(S.pairs.slice().reverse(), true)));
+}
+
+// ───────── 기록 · 백업 ─────────
+// ───────── 클라우드 동기화 (비공개 Gist) ─────────
+// 토익 단어 상자와 같은 방식: 기록을 내 GitHub 계정의 비공개 Gist 한 개에 올리고,
+// 같은 토큰을 넣은 기기(PC 파일·웹 주소·폰)가 같은 기록을 써요. 토큰은 이 브라우저에만 남아요.
+var syncReady = false;
+const SYNC_KEY = "infosec-practical-sync-v1";
+const GIST_FILE = "infosec-practical-state.json";
+const GIST_DESC = "정보보안기사 실기 연습장 — 학습 기록 동기화";
+let SY = { token: "", gistId: "" };
+let syncing = false, syncQueued = false, syncTimer = null, pollTimer = null;
+let syncStatus = { state: "off", msg: "", at: 0 };
+function loadSyncCfg() { try { const o = JSON.parse(localStorage.getItem(SYNC_KEY) || "null"); if (o) return { token: o.token || "", gistId: o.gistId || "" }; } catch (e) {} return { token: "", gistId: "" }; }
+function saveSyncCfg() { try { localStorage.setItem(SYNC_KEY, JSON.stringify(SY)); } catch (e) {} }
+function syncOn() { return !!(SY.token && SY.gistId); }
+function syncText() {
+  if (!syncOn()) return "동기화 안 함";
+  const s = syncStatus.state;
+  if (s === "busy") return "동기화 중…";
+  if (s === "err") return "동기화 실패: " + syncStatus.msg;
+  if (s === "offline") return "오프라인 — 연결되면 자동으로 올려요";
+  if (s === "ok") { const d = new Date(syncStatus.at); return "동기화됨 " + String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+  return "동기화 대기";
+}
+function setSyncStatus(state, msg) { syncStatus = { state, msg: msg || "", at: state === "ok" ? Date.now() : syncStatus.at }; const el = $("#syncText"); if (el) el.textContent = syncText(); const el2 = $("#syncHead"); if (el2) el2.textContent = syncOn() ? " · ☁ " + syncText() : ""; }
+
+// 병합: 통째로 덮어쓰지 않고 항목마다 합쳐요 (여러 번 돌려도 결과가 같아요)
+function mergeStates(A, B) {
+  A = normalizeState(JSON.parse(JSON.stringify(A || {}))); B = normalizeState(JSON.parse(JSON.stringify(B || {})));
+  const out = { blocks: {}, nodeStats: {}, pairs: [], glossary: [], tomb: {} };
+  for (const t of [A.tomb, B.tomb]) for (const k in t) out.tomb[k] = Math.max(out.tomb[k] || 0, +t[k] || 0);
+  // 블록: 지도·키워드는 마지막으로 고친 쪽, 인출 기록은 합집합
+  for (const id of new Set([...Object.keys(A.blocks), ...Object.keys(B.blocks)])) {
+    const x = A.blocks[id], y = B.blocks[id];
+    if (!x || !y) { out.blocks[id] = x || y; continue; }
+    const w = (+y.u || 0) > (+x.u || 0) ? y : x;
+    const seen = new Set(), attempts = [];
+    for (const a of [...(x.attempts || []), ...(y.attempts || [])]) { const k = [a.date, a.time, a.hit, a.total].join("|"); if (!seen.has(k)) { seen.add(k); attempts.push(a); } }
+    attempts.sort((p, q) => (p.date + p.time).localeCompare(q.date + q.time));
+    out.blocks[id] = { outline: w.outline, kw: w.kw, u: Math.max(+x.u || 0, +y.u || 0), attempts };
+  }
+  // 칸별 맞음/틀림 횟수: 큰 쪽 (더하면 다시 동기화할 때마다 불어나요)
+  for (const k of new Set([...Object.keys(A.nodeStats), ...Object.keys(B.nodeStats)])) {
+    const x = A.nodeStats[k] || {}, y = B.nodeStats[k] || {};
+    out.nodeStats[k] = { hit: Math.max(+x.hit || 0, +y.hit || 0), miss: Math.max(+x.miss || 0, +y.miss || 0) };
+  }
+  // 헷갈리는 쌍: 합집합, 지운 건 되살리지 않아요
+  const pm = {}; for (const p of [...A.pairs, ...B.pairs]) pm[p.id] = pm[p.id] || p;
+  out.pairs = Object.values(pm).filter(p => !out.tomb["p:" + p.id]).sort((p, q) => (p.date || "").localeCompare(q.date || ""));
+  // 어휘장: 마지막으로 고친 쪽, 알았음/몰랐음은 큰 쪽
+  const gm = {};
+  for (const g of [...A.glossary, ...B.glossary]) {
+    const o = gm[g.id];
+    if (!o) { gm[g.id] = Object.assign({}, g); continue; }
+    const w = (+g.u || 0) > (+o.u || 0) ? g : o;
+    gm[g.id] = Object.assign({}, w, { known: Math.max(+o.known || 0, +g.known || 0), unknown: Math.max(+o.unknown || 0, +g.unknown || 0), u: Math.max(+o.u || 0, +g.u || 0) });
+  }
+  out.glossary = Object.values(gm).filter(g => !out.tomb["g:" + g.id]).sort((p, q) => (p.date || "").localeCompare(q.date || "") || (+p.u || 0) - (+q.u || 0));
+  out.lastBackup = [A.lastBackup, B.lastBackup].filter(Boolean).sort().pop() || null;
+  out.updatedAt = Math.max(+A.updatedAt || 0, +B.updatedAt || 0);
+  return out;
+}
+
+async function gh(path, method, body) {
+  let r;
+  try {
+    r = await fetch("https://api.github.com" + path, { method: method || "GET", headers: { "Authorization": "Bearer " + SY.token, "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  } catch (e) { const err = new Error("네트워크에 연결할 수 없어요."); err.offline = true; throw err; }
+  if (!r.ok) throw new Error(r.status === 401 ? "토큰이 잘못됐거나 만료됐어요. 새 토큰으로 다시 연결해 주세요." : r.status === 403 ? "토큰에 gist 권한이 없거나 요청이 너무 잦아요." : r.status === 404 ? "Gist를 찾을 수 없어요. 연결을 끊고 다시 연결해 주세요." : "GitHub 오류 " + r.status);
+  return r.json();
+}
+async function findOrCreateGist() {
+  const list = await gh("/gists?per_page=100");
+  const hit = (list || []).find(g => g && g.files && g.files[GIST_FILE]);
+  if (hit) return hit.id;
+  const made = await gh("/gists", "POST", { description: GIST_DESC, public: false, files: { [GIST_FILE]: { content: JSON.stringify(S) } } });
+  return made.id;
+}
+async function pullRemote() {
+  const g = await gh("/gists/" + SY.gistId);
+  const f = g && g.files && g.files[GIST_FILE]; if (!f) return null;
+  let text = f.content;
+  if (f.truncated || text == null) { const r = await fetch(f.raw_url); if (!r.ok) throw new Error("Gist 본문을 받지 못했어요."); text = await r.text(); }
+  try { const o = JSON.parse(text); return o && o.blocks ? o : null; } catch (e) { return null; }
+}
+function syncSoon(ms) { if (!syncReady || !syncOn()) return; clearTimeout(syncTimer); syncTimer = setTimeout(doSync, ms == null ? 3000 : ms); }
+async function doSync() {
+  if (!syncOn()) return;
+  if (syncing) { syncQueued = true; return; }
+  clearTimeout(syncTimer); syncing = true; setSyncStatus("busy");
+  try {
+    const remote = await pullRemote();
+    const before = JSON.stringify(S);
+    if (remote) S = mergeStates(S, remote);
+    const changed = JSON.stringify(S) !== before;
+    if (changed) { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+    if (!remote || JSON.stringify(S) !== JSON.stringify(remote)) await gh("/gists/" + SY.gistId, "PATCH", { files: { [GIST_FILE]: { content: JSON.stringify(S) } } });
+    setSyncStatus("ok");
+    if (changed) rerenderIfIdle();
+  } catch (e) {
+    setSyncStatus(e.offline ? "offline" : "err", e.message);
+  } finally {
+    syncing = false;
+    if (syncQueued) { syncQueued = false; syncSoon(800); }
+  }
+}
+// 공부 화면(입력 중인 답이 있을 수 있음)에서는 화면을 다시 그리지 않아요
+function rerenderIfIdle() {
+  if (!["today", "glossary", "pairs", "records", "help"].includes(view)) return;
+  const a = document.activeElement; if (a && ["INPUT", "TEXTAREA", "SELECT"].includes(a.tagName)) return;
+  render();
+}
+function startPoll() { clearInterval(pollTimer); pollTimer = setInterval(() => { if (syncOn() && !document.hidden) doSync(); }, 180000); }
+async function connectSync(token) {
+  token = (token || "").trim(); if (!token) { alertBox("토큰을 붙여 넣어 주세요."); return; }
+  SY = { token, gistId: "" }; setSyncStatus("busy");
+  try {
+    SY.gistId = await findOrCreateGist(); saveSyncCfg(); syncReady = true;
+    await doSync(); startPoll(); alertBox("동기화를 연결했어요. 다른 기기에서도 같은 토큰을 넣으면 같은 기록을 써요.");
+  } catch (e) { SY = { token: "", gistId: "" }; setSyncStatus("off"); alertBox("연결 실패: " + e.message); }
+  render();
+}
+function disconnectSync() { SY = { token: "", gistId: "" }; try { localStorage.removeItem(SYNC_KEY); } catch (e) {} clearTimeout(syncTimer); clearInterval(pollTimer); setSyncStatus("off"); render(); }
+function syncCard() {
+  const tok = h("input", { type: "password", placeholder: "ghp_로 시작하는 토큰 붙여 넣기", style: "flex:1;min-width:220px", autocomplete: "off" });
+  return h("div", { class: "card" }, h("h2", {}, "☁ 클라우드 동기화 (PC · 웹 · 폰 같은 기록 쓰기)"),
+    h("p", {}, "상태: ", h("b", { id: "syncText" }, syncText())),
+    syncOn()
+      ? h("div", { class: "row" }, h("button", { class: "btn", onclick: () => doSync() }, "지금 동기화"), h("button", { class: "btn ghost", onclick: () => { if (confirm("이 브라우저의 동기화 연결을 끊을까요? (기록은 그대로 남아요)")) disconnectSync(); } }, "연결 끊기"))
+      : h("div", {},
+          h("p", { class: "small" }, "기록을 내 GitHub 계정의 ", h("b", {}, "비공개 Gist"), " 한 개에 올려서, 같은 토큰을 넣은 기기끼리 같은 기록을 써요. 토큰은 이 브라우저에만 저장되고 Gist에는 올라가지 않아요."),
+          h("ol", { class: "small" },
+            h("li", {}, "GitHub → Settings → Developer settings → Personal access tokens → ", h("b", {}, "Tokens (classic)"), " → Generate new token"),
+            h("li", {}, "권한은 ", h("b", {}, "gist 하나만"), " 체크 → 만든 토큰을 아래에 붙여 넣고 연결"),
+            h("li", {}, "다른 기기(웹 주소, 폰)에서도 같은 토큰만 넣으면 기존 기록을 찾아서 붙어요. ", h("b", {}, "토익 단어 상자 토큰(gist 권한)을 그대로 써도 돼요."))),
+          h("div", { class: "row" }, tok, h("button", { class: "btn", onclick: () => connectSync(tok.value) }, "연결"))),
+    h("p", { class: "small muted" }, "처음 옮길 때 순서: 지금까지 쓰던 쪽(예: PC 파일)에서 먼저 연결 → 그다음 새 쪽(웹 주소·폰)에서 같은 토큰으로 연결. 기록은 항목마다 합쳐져서 지워지지 않아요."));
+}
+
+function viewRecords(main) {
+  main.append(syncCard());
+  const days =S.lastBackup ? Math.round((new Date(todayStr()) - new Date(S.lastBackup)) / 86400000) : null;
+  const fileIn = h("input", { type: "file", accept: ".json,application/json", class: "hidden", onchange: e => {
+    const f = e.target.files[0]; if (!f) return;
+    f.text().then(txt => { try { const s = JSON.parse(txt); if (!s.blocks) throw 0; if (!confirm("지금 기록을 백업 파일 내용으로 바꿀까요?")) return; S = normalizeState(s); save(); alertBox("백업을 불러왔어요."); render(); } catch (err) { alertBox("백업 파일을 읽지 못했어요."); } });
+  } });
+  main.append(h("div", { class: "card" }, h("h2", {}, "백업"),
+    h("p", {}, S.lastBackup ? `마지막 백업: ${fmtDate(S.lastBackup)}${days >= 1 ? " · ⚠️ 오늘 아직 백업 안 했어요" : ""}` : "⚠️ 아직 백업한 적이 없어요."),
+    h("p", { class: "small muted" }, "백업 파일(.json)은 다운로드 폴더에 저장돼요. OneDrive의 '일정 관리' 폴더로 옮겨 두면 컴퓨터가 바뀌어도 안전해요."),
+    h("div", { class: "row" },
+      h("button", { class: "btn", onclick: () => {
+        S.lastBackup = todayStr(); save();
+        const url = URL.createObjectURL(new Blob([JSON.stringify(S, null, 1)], { type: "application/json" }));
+        const a = h("a", { href: url, download: `실기연습_백업_${todayStr()}.json` }); document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(url); render();
+      } }, "백업 내보내기"),
+      h("button", { class: "btn ghost", onclick: () => fileIn.click() }, "백업 불러오기"), fileIn)));
+  const tb = h("table", {}, h("tr", {}, h("th", {}, "블록"), h("th", {}, "날짜"), h("th", {}, "지도 칸"), h("th", {}, "인출 기록")));
+  for (const b of BLOCKS) {
+    const d = S.blocks[b.id]; const nodes = d ? parseOutline(d.outline).length : 0;
+    tb.append(h("tr", {}, h("td", {}, h("b", {}, b.id), " ", h("span", { class: "small muted" }, b.title)),
+      h("td", { class: "small" }, fmtDate(b.date)), h("td", {}, nodes || "-"),
+      h("td", { class: "small" }, (d?.attempts || []).map(a => h("span", { class: "chip " + (a.total && a.hit / a.total >= .8 ? "ok" : a.total && a.hit / a.total >= .5 ? "warn" : "bad") }, `${fmtDate(a.date)} ${a.hit}/${a.total}`)))));
+  }
+  main.append(h("div", { class: "card" }, h("h2", {}, "블록별 기록"), tb));
+  const weak = Object.entries(S.nodeStats).filter(([, s]) => s.miss > s.hit).sort((a, b) => (b[1].miss - b[1].hit) - (a[1].miss - a[1].hit)).slice(0, 30);
+  if (weak.length) main.append(h("div", { class: "card" }, h("h2", {}, "자주 틀린 칸 (상위 30)"),
+    h("ul", {}, weak.map(([k, s]) => h("li", {}, k.replace("::", " · "), h("span", { class: "muted small" }, `  (틀림 ${s.miss} · 맞음 ${s.hit})`))))));
+}
+
+// ───────── 사용법 ─────────
+function viewHelp(main) {
+  main.append(h("div", { class: "card" }, h("h2", {}, "사용법"),
+    h("h3", {}, "용어"),
+    h("ul", {},
+      h("li", {}, h("b", {}, "블록(B1~B50)"), " = 교재 제목(1., 2. …) 단위로 묶은 공부 범위예요. 짧은 제목은 이어 붙이고, 25쪽 넘는 제목은 나눴어요(✂️). 예) B1 = 이론편 p.3~8 '1. 윈도우 기본 학습'"),
+      h("li", {}, h("b", {}, "블록 시간"), " = 쪽수에 비례해요 (20쪽이면 약 2시간). 하루에 블록 4 ~ 5개를 순서대로 해요."),
+      h("li", {}, h("b", {}, "지도(트리)"), " = 그 블록의 소제목을 계층으로 적은 목록이에요. ", h("b", {}, "내가 교재를 보고 직접 만들어요.")),
+      h("li", {}, h("b", {}, "인출"), " = 책을 덮고 기억만으로 다시 쓰는 거예요.")),
+    h("h3", {}, "블록 하나 (20쪽 기준 2시간, 쪽수에 따라 늘고 줄어요)"),
+    h("ol", {},
+      h("li", {}, h("b", {}, "① 구조 10분 (10쪽 미만 5분)"), ": 블록 범위를 넘기며 굵은 소제목만 적어 지도를 만들어요."),
+      h("li", {}, h("b", {}, "② 읽기 쪽수 × 3.5분"), ": 지도를 옆에 두고 읽으면서 칸마다 키워드 2~3개를 적어요. ★ 부분만 꼼꼼히 읽어요."),
+      h("li", {}, h("b", {}, "③ 인출 쪽수 × 1.5분"), ": 책을 덮고 빈 지도에 키워드를 다시 써요 → 채점 → 빠진 칸만 책에서 확인해요."),
+      h("li", {}, h("b", {}, "④ 휴식 10분"))),
+    h("h3", {}, "하루"),
+    h("ul", {},
+      h("li", {}, "07:30 ", h("b", {}, "아침 복습"), ": 어제 블록 지도를 다시 채워요."),
+      h("li", {}, "08:30 ~ ", h("b", {}, "오늘 블록을 순서대로"), " (\"오늘\" 탭에 블록별 시간이 나와요)"),
+      h("li", {}, "18:30 ", h("b", {}, "저녁 퀴즈"), ": 오늘 칸들을 섞어서 키워드를 떠올려요."),
+      h("li", {}, "19:30 ", h("b", {}, "단답형"), ": 문제편 (\"오늘\" 탭에 쪽수가 나와요)"),
+      h("li", {}, "하루 끝: ", h("b", {}, "기록·백업 → 백업 내보내기"))),
+    h("h3", {}, "모르는 말이 나오면 (② 읽기 → ❓ 모르는 말 바로 묻기)"),
+    h("ol", {},
+      h("li", {}, "모르는 단어나 문장을 적고, 칸과 질문 방식(쉬운 말로 · 비유·예시로 · 왜 필요한지 · 비슷한 것과 차이)을 골라요."),
+      h("li", {}, h("b", {}, "질문 복사"), " → Claude Code 채팅, claude.ai, 휴대폰 Claude 앱 중 아무 데나 붙여 넣어요. 이 페이지는 Claude에 직접 연결되지 않아요."),
+      h("li", {}, "설명을 읽고 ", h("b", {}, "화면을 보지 않고 내 말로 한두 줄"), " 정리해요. 못 쓰겠으면 질문 방식을 바꿔 다시 물어요."),
+      h("li", {}, h("b", {}, "어휘장에 저장"), " → ③ 인출 끝, 아침 복습, 저녁 퀴즈에서 다시 나와요. 어휘장 탭에서 정리를 고칠 수 있어요.")),
+    h("p", { class: "small muted" }, "질문 시간도 읽기 시간 안에 들어가요. 한 번에 1 ~ 2분, 한 블록에 3 ~ 5개까지만 해요."),
+    h("h3", {}, "채점 규칙"),
+    h("ul", {},
+      h("li", {}, "② 읽기 때 적은 키워드가 답에 들어 있으면 맞음이에요. 띄어쓰기, 대소문자, 하이픈은 무시해요."),
+      h("li", {}, "같은 뜻의 표현은 키워드를 적을 때 ", h("code", {}, "SetUID|SUID"), "처럼 | 로 묶어 두세요."),
+      h("li", {}, h("b", {}, "노란색 '섞임'"), " = 다른 칸에 들어가야 할 키워드를 여기에 쓴 거예요. OSPF와 OCSP처럼 개념이 섞였다는 신호라서, 헷갈리는 쌍에 등록하세요."),
+      h("li", {}, h("b", {}, "회색 '메모에 없던 말'"), "은 틀렸다는 뜻이 아니에요. 맞는 내용이면 다음에 ② 읽기에서 키워드로 추가하세요."),
+      h("li", {}, "이 페이지는 ", h("b", {}, "내용이 맞는지는 판단하지 못해요."), " 인출 결과 화면의 \"결과 복사\"를 눌러 Claude Code 채팅에 붙여 넣으면 내용 피드백을 받을 수 있어요.")),
+    h("h3", {}, "저장"),
+    h("ul", {},
+      h("li", {}, "입력하는 즉시 이 브라우저에 저장돼요. ", h("b", {}, "항상 같은 브라우저로 이 파일을 여세요.")),
+      h("li", {}, "브라우저 기록·사이트 데이터를 지우면 사라져요. 매일 백업을 내보내 두세요."),
+      h("li", {}, "타이머는 새로고침하면 처음부터 다시 시작해요."))));
+}
+
+SY = loadSyncCfg();
+if (syncOn()) { syncReady = true; render(); doSync(); startPoll(); } else render();
+document.addEventListener("visibilitychange", () => { if (!document.hidden && syncOn()) doSync(); });
+</script>
+</body>
+</html>
