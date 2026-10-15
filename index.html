@@ -293,6 +293,31 @@ tr:last-child td { border-bottom: 0; }
 .qcard { font-size: 17px; padding: 16px; border-radius: var(--r-md); background: var(--bg); border: 1px solid var(--line-soft); margin: 10px 0; }
 .qcard .path { color: var(--text-3); font-size: 12.5px; margin-bottom: 4px; }
 
+/* 구조 편집기 */
+.oed { display: flex; flex-direction: column; gap: 4px; }
+.oed-empty { padding: 16px; border: 1px dashed var(--line); border-radius: var(--r-md); color: var(--text-3); font-size: 14px; text-align: center; }
+.oed-row { display: grid; grid-template-columns: 44px 1fr auto; gap: 6px; align-items: center; margin-left: calc(var(--d) * 18px); padding: 3px 4px 3px 6px; border-radius: var(--r-md); position: relative; }
+.oed-row:not(.top)::before { content: ""; position: absolute; left: -10px; top: 2px; bottom: 2px; border-left: 2px solid var(--line-soft); }
+.oed-row.top { background: var(--surface-2); }
+.oed-row:focus-within { background: var(--accent-wash); }
+.oed-mark { font-weight: 700; font-size: 14px; color: var(--accent); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.oed-row.mentor .oed-mark { color: var(--warn); }
+.oed-row input[type=text] { border-color: transparent; background: transparent; padding: 6px 8px; width: 100%; }
+.oed-row input[type=text]:focus { background: var(--surface); border-color: var(--accent); }
+.oed-row.mentor input[type=text] { color: var(--warn); font-weight: 600; }
+.oed-tools { display: flex; gap: 2px; opacity: .35; transition: opacity .15s; }
+.oed-row:hover .oed-tools, .oed-row:focus-within .oed-tools { opacity: 1; }
+.oed-btn { border: 1px solid var(--line); background: var(--surface); color: var(--text-2); width: 28px; height: 28px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 12px; padding: 0; }
+.oed-btn:hover { border-color: var(--accent); color: var(--accent); }
+.oed-btn.del:hover { border-color: var(--bad); color: var(--bad); }
+.oed-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 12px; padding: 10px; border: 1px dashed var(--line); border-radius: var(--r-md); }
+input[type=number] { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+@media (max-width: 640px) {
+  .oed-row { grid-template-columns: 36px 1fr; margin-left: calc(var(--d) * 12px); }
+  .oed-tools { grid-column: 2; opacity: 1; justify-content: flex-end; }
+  .oed-row:not(.sel) .oed-tools { display: none; }
+}
+
 @media (max-width: 640px) {
   :root { --topbar-h: 112px; }
   body { font-size: 15px; }
@@ -461,7 +486,8 @@ function lineDepth(label, raw, prevDepth) {
   if (/^\d+\.\s*\S/.test(label)) return 0;
   if (/^\(\d+\)/.test(label)) return 1;
   if (/^\d+\)/.test(label)) return 2;
-  if (/^([①-⑳]|[가-하]\.|[가-하]\))/.test(label)) return 3;
+  if (/^(\([가-하]\)|[가-하]\.|[가-하]\))/.test(label)) return 3;
+  if (/^[①-⑳]/.test(label)) return 4;
   if (/^(보안\s*멘토|💡)/.test(label)) return prevDepth == null ? 0 : prevDepth + 1;
   const ws = raw.match(/^[ \t]*/)[0].replace(/\t/g, "  ");
   return Math.floor(ws.length / 2);
@@ -659,28 +685,143 @@ function viewStudy(main) {
   [stepStructure, stepRead, stepRecall, stepRest][studyStep](area, b);
 }
 
+// ───────── 구조 편집기: 단계만 고르면 번호는 자동 ─────────
+// 단계: 0 = 1.  1 = (1)  2 = 1)  3 = (가)  4 = ①   + 보안멘토(바로 위 제목의 하위)
+const LV_NAMES = ["1.", "(1)", "1)", "(가)", "①"];
+const HANGUL = "가나다라마바사아자차카타파하";
+function lvMarker(lv, n) {
+  if (lv === 0) return n + ".";
+  if (lv === 1) return "(" + n + ")";
+  if (lv === 2) return n + ")";
+  if (lv === 3) return "(" + (HANGUL[n - 1] || n) + ")";
+  return n >= 1 && n <= 20 ? String.fromCharCode(0x2460 + n - 1) : "(" + n + ")";
+}
+// 지도 글(outline) → 편집 줄 목록
+function rowsFromOutline(text) {
+  const rows = [];
+  for (const raw of (text || "").split("\n")) {
+    if (!raw.trim()) continue;
+    let s = raw.trim().replace(/^[-*·•]\s*/, "");
+    let m;
+    if ((m = s.match(/^(보안\s*멘토|💡)\s*:?\s*/))) { rows.push({ lv: 0, mentor: true, text: s.slice(m[0].length) }); continue; }
+    const pats = [/^\d+\.\s*(?=\S)/, /^\(\d+\)\s*/, /^\d+\)\s*/, /^(\([가-하]\)|[가-하][.)])\s*/, /^[①-⑳]\s*/];
+    let lv = -1;
+    for (let k = 0; k < pats.length; k++) if ((m = s.match(pats[k]))) { lv = k; s = s.slice(m[0].length); break; }
+    if (lv < 0) lv = Math.min(4, Math.floor(raw.match(/^[ \t]*/)[0].replace(/\t/g, "  ").length / 2));
+    rows.push({ lv, mentor: false, text: s });
+  }
+  return rows;
+}
+// 편집 줄 목록 → 지도 글 (번호 자동). starts = 단계별 첫 번호
+function outlineFromRows(rows, starts) {
+  const st = starts || [];
+  // 첫 번호는 그 단계가 처음 나올 때만 적용 (위 단계가 바뀌어도 첫 묶음은 시작 번호부터)
+  const first = k => (+st[k] || 1) - 1;
+  const cnt = [0, 1, 2, 3, 4].map(first), seen = [false, false, false, false, false];
+  return rows.map(r => {
+    if (r.mentor) return "보안멘토: " + r.text;
+    cnt[r.lv]++; seen[r.lv] = true;
+    for (let k = r.lv + 1; k < 5; k++) cnt[k] = seen[k] ? 0 : first(k);
+    return "  ".repeat(r.lv) + lvMarker(r.lv, cnt[r.lv]) + " " + r.text;
+  }).join("\n");
+}
+
 function stepStructure(area, b) {
   const data = blk(b.id);
   area.append(h("h2", {}, `① 구조: 지도 만들기 (${stepMins(b)[0]}분)`),
     h("p", {}, h("b", {}, "이론편"), "을 펴요 (문제편 아님). ", h("b", {}, "본문은 읽지 않아요."), " 이론편 ", h("b", {}, `p.${b.pages}`), "를 처음부터 끝까지 빠르게 넘기면서 ", h("b", {}, "제목만"), " 옮겨 적어요."),
     h("ol", {},
-      h("li", {}, "본문 제목을 ", h("b", {}, "교재 번호까지 그대로"), " 한 줄씩 적어요. 한 줄이 지도의 한 칸이에요."),
-      h("li", {}, h("b", {}, "번호만 맞게 쓰면 들여쓰기는 자동"), "이에요: ", h("b", {}, "1."), " → ", h("b", {}, "(1)"), " → ", h("b", {}, "1)"), " → ", h("b", {}, "①"), " 순서로 한 단계씩 안쪽으로 들어가요."),
-      h("li", {}, h("b", {}, "보안멘토 박스"), "도 칸으로 적어요. ", h("b", {}, "\"보안멘토: 주제\""), "로 쓰면 바로 위 제목의 하위 칸이 돼요. 시험 포인트를 짚는 박스라 꼭 넣어요."),
-      h("li", {}, "넘기면서 ", h("b", {}, "표와 그림이 어디 있는지만"), " 눈으로 봐 둬요. 내용은 읽지 않아요.")),
+      h("li", {}, "아래 버튼으로 ", h("b", {}, "단계를 고르고 제목만"), " 적어요. ", h("b", {}, "번호(1. (1) 1) (가) ①)는 자동"), "으로 매겨져요."),
+      h("li", {}, h("b", {}, "Enter"), " = 같은 단계 다음 줄 · ", h("b", {}, "Tab"), " = 한 단계 안쪽 · ", h("b", {}, "Shift+Tab"), " = 한 단계 바깥 · 빈 줄에서 ", h("b", {}, "Backspace"), " = 줄 지우기 · ↑↓ = 줄 이동"),
+      h("li", {}, h("b", {}, "보안멘토 박스"), "도 꼭 넣어요. \"💡 보안멘토\"로 넣으면 바로 위 제목의 하위 칸이 돼요."),
+      h("li", {}, "넘기면서 ", h("b", {}, "표와 그림이 어디 있는지만"), " 눈으로 봐 둬요.")),
     h("ul", { class: "small muted" },
-      h("li", {}, "블록 하나에 보통 15 ~ 30칸이 나와요. ② 읽기 때 ", h("b", {}, "키워드는 가장 작은 제목(1), 2) …)과 보안멘토 칸에만"), " 적어요. 1.이나 (1) 같은 큰 제목 칸은 비워 둬도 돼요 (비운 칸은 채점에서 빠져요)."),
-      h("li", {}, "번호가 없는 제목은 스페이스 2칸(또는 Tab)으로 들여 써요."),
-      h("li", {}, "10분 안에 끝내요. 덜 끝났으면 ② 읽으면서 추가해도 돼요. 같은 이름의 칸은 키워드가 그대로 남아요.")));
+      h("li", {}, "블록 하나에 보통 15 ~ 30칸이에요. 키워드는 ② 읽기 때 가장 작은 제목과 보안멘토 칸에만 적어요."),
+      h("li", {}, "✂ 블록처럼 제목 중간부터 시작하면 아래 \"첫 번호\"에서 시작 번호를 바꿔요 (예: (5)부터)."),
+      h("li", {}, "키워드를 적은 뒤에 줄을 넣거나 빼도, 키워드는 같은 순서의 칸을 따라가요.")));
   foldGuide(area, "structure");
-  const ta = h("textarea", { class: "mono", placeholder: "예) 교재 제목을 번호까지 그대로\n1. 윈도우 기본 학습\n(1) 윈도우 인증과정\n1) 윈도우 인증 구성요소\n2) 로컬 인증\n3) 원격(도메인) 인증\n4) SAM 파일 접근 통제 설정\n보안멘토: SAM 파일\n(2) 윈도우 보안 식별자(SID)\n1) 개요" });
-  ta.value = data.outline;
-  ta.addEventListener("keydown", e => { if (e.key === "Tab") { e.preventDefault(); const s = ta.selectionStart; ta.setRangeText("  ", s, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input")); } });
-  const preview = h("div");
-  const paint = () => { preview.innerHTML = ""; const nodes = parseOutline(ta.value); preview.append(h("p", { class: "muted small" }, `미리보기 · 칸 ${nodes.length}개`), treeView(nodes, () => null)); };
-  ta.addEventListener("input", () => { data.outline = ta.value; data.u = Date.now(); save(); paint(); });
-  area.append(ta, preview,
-    h("div", { class: "row", style: "margin-top:10px" }, h("button", { class: "btn", onclick: () => { studyStep = 1; timerSet(1); render(); } }, "다음: ② 읽기 →")));
+
+  let rows = rowsFromOutline(data.outline);
+  data.starts = data.starts || [1, 1, 1, 1, 1];
+  let focusIdx = rows.length ? rows.length - 1 : -1;
+  const ed = h("div", { class: "oed" });
+  const count = h("span", { class: "small muted" });
+
+  // 저장: 번호·위치가 바뀌어도 키워드는 그 줄(칸)을 따라가요
+  const rowPath = new Map();
+  parseOutline(data.outline).forEach((n, i) => { if (rows[i]) rowPath.set(rows[i], n.path); });
+  const commit = () => {
+    const out = outlineFromRows(rows, data.starts);
+    const newNodes = parseOutline(out);
+    if (out !== data.outline) {
+      const kw = {};
+      rows.forEach((r, i) => { const n = newNodes[i]; if (!n) return; const old = rowPath.get(r); const v = old != null ? data.kw[old] : data.kw[n.path]; if (v) kw[n.path] = v; });
+      data.kw = kw; data.outline = out; data.u = Date.now(); save();
+    }
+    rows.forEach((r, i) => { if (newNodes[i]) rowPath.set(r, newNodes[i].path); });
+    count.textContent = `칸 ${newNodes.length}개`;
+    return newNodes;
+  };
+  const paint = (focus) => {
+    const nodes = commit();
+    ed.innerHTML = "";
+    if (!rows.length) ed.append(h("div", { class: "oed-empty" }, "아래 버튼으로 첫 제목을 넣어요. 보통 \"+ 1.\"부터 시작해요."));
+    rows.forEach((r, i) => {
+      const depth = nodes[i] ? nodes[i].depth : r.lv;
+      const mark = r.mentor ? "💡" : nodes[i] ? nodes[i].label.split(" ")[0] : LV_NAMES[r.lv];
+      const inp = h("input", { type: "text", value: r.text, placeholder: r.mentor ? "보안멘토 주제" : "제목", "aria-label": "제목" });
+      inp.value = r.text;
+      const pick = () => { focusIdx = i; ed.querySelectorAll(".oed-row.sel").forEach(x => x.classList.remove("sel")); rowEl.classList.add("sel"); };
+      inp.addEventListener("focus", pick);
+      inp.addEventListener("pointerdown", pick);
+      inp.addEventListener("input", () => { r.text = inp.value; commit(); });
+      inp.addEventListener("keydown", e => {
+        if (e.isComposing || e.keyCode === 229) return; // 한글 조합 중에는 무시
+        if (e.key === "Enter") { e.preventDefault(); rows.splice(i + 1, 0, { lv: r.mentor ? Math.max(0, depth - 1) : r.lv, mentor: false, text: "" }); paint(i + 1); }
+        else if (e.key === "Tab") { e.preventDefault(); if (!r.mentor) { r.lv = Math.max(0, Math.min(4, r.lv + (e.shiftKey ? -1 : 1))); paint(i); } }
+        else if (e.key === "Backspace" && !inp.value) { e.preventDefault(); rows.splice(i, 1); paint(Math.max(0, i - 1)); }
+        else if (e.key === "ArrowUp" && i > 0) { e.preventDefault(); focusRow(i - 1); }
+        else if (e.key === "ArrowDown" && i < rows.length - 1) { e.preventDefault(); focusRow(i + 1); }
+      });
+      const rowEl = h("div", { class: "oed-row" + (r.mentor ? " mentor" : "") + (depth === 0 ? " top" : "") + (i === (focus != null ? focus : focusIdx) ? " sel" : ""), style: `--d:${depth}` },
+        h("span", { class: "oed-mark" }, mark), inp,
+        h("div", { class: "oed-tools" },
+          r.mentor ? null : h("button", { class: "oed-btn", title: "바깥 단계로 (Shift+Tab)", disabled: r.lv === 0 ? "" : false, onclick: () => { r.lv--; paint(i); } }, "◀"),
+          r.mentor ? null : h("button", { class: "oed-btn", title: "안쪽 단계로 (Tab)", disabled: r.lv === 4 ? "" : false, onclick: () => { r.lv++; paint(i); } }, "▶"),
+          h("button", { class: "oed-btn", title: "위로", disabled: i === 0 ? "" : false, onclick: () => { [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]]; paint(i - 1); } }, "↑"),
+          h("button", { class: "oed-btn", title: "아래로", disabled: i === rows.length - 1 ? "" : false, onclick: () => { [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]]; paint(i + 1); } }, "↓"),
+          h("button", { class: "oed-btn del", title: "줄 지우기", onclick: () => { rows.splice(i, 1); paint(Math.min(i, rows.length - 1)); } }, "×")));
+      ed.append(rowEl);
+    });
+    if (focus != null) focusRow(focus);
+  };
+  const focusRow = i => { const el = ed.querySelectorAll(".oed-row input")[i]; if (el) { focusIdx = i; el.focus(); const v = el.value.length; el.setSelectionRange(v, v); } };
+  const add = (lv, mentor) => {
+    const at = focusIdx >= 0 && focusIdx < rows.length ? focusIdx + 1 : rows.length;
+    rows.splice(at, 0, { lv: mentor ? 0 : lv, mentor: !!mentor, text: "" });
+    paint(at);
+  };
+  const bar = h("div", { class: "oed-bar" },
+    h("span", { class: "small muted" }, "줄 넣기"),
+    ...LV_NAMES.map((nm, k) => h("button", { class: "btn ghost small", onclick: () => add(k) }, "+ " + nm)),
+    h("button", { class: "btn ghost small", onclick: () => add(0, true) }, "+ 💡 보안멘토"));
+
+  // 첫 번호 (✂ 블록처럼 중간부터 시작할 때)
+  const startsBox = h("details", { class: "guide" }, h("summary", {}, "첫 번호 바꾸기 (제목 중간부터 시작하는 블록)"),
+    h("div", { class: "row", style: "padding-bottom:6px" }, ...LV_NAMES.map((nm, k) => {
+      const inp = h("input", { type: "number", min: "1", value: String(data.starts[k] || 1), style: "width:64px" });
+      inp.addEventListener("input", () => { data.starts[k] = Math.max(1, parseInt(inp.value, 10) || 1); paint(); });
+      return h("label", { class: "row small", style: "gap:4px" }, nm, inp);
+    })));
+  // 한 번에 붙여 넣기 (예전 방식)
+  const ta = h("textarea", { class: "mono", style: "min-height:160px", placeholder: "1. 윈도우 기본 학습\n(1) 윈도우 인증과정\n1) 윈도우 인증 구성요소\n보안멘토: SAM 파일" });
+  const pasteBox = h("details", { class: "guide" }, h("summary", {}, "글로 한 번에 넣기 (번호까지 적힌 목록을 붙여 넣을 때)"),
+    ta, h("div", { class: "row", style: "margin:8px 0" },
+      h("button", { class: "btn small", onclick: () => { if (!ta.value.trim()) return; rows = rowsFromOutline(ta.value); ta.value = ""; paint(); } }, "이걸로 바꾸기"),
+      h("button", { class: "btn ghost small", onclick: () => { ta.value = data.outline; } }, "지금 지도를 글로 보기")));
+
+  area.append(h("div", { class: "row", style: "justify-content:space-between;margin-bottom:6px" }, h("b", {}, "지도"), count), ed, bar, startsBox, pasteBox,
+    h("div", { class: "row", style: "margin-top:12px" }, h("button", { class: "btn", onclick: () => { studyStep = 1; timerSet(1); render(); } }, "다음: ② 읽기 →")));
   paint();
 }
 
