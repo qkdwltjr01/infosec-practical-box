@@ -5,106 +5,344 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>실기 연습장</title>
 <style>
+/* ============================================================
+   TOKENS — 토익 단어 상자와 같은 구조, 색만 차가운 잉크 블루
+   ============================================================ */
 :root {
-  --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #667085; --line: #e3e6eb;
-  --accent: #2f6fde; --accent-soft: #e8f0fd;
-  --ok: #1f8a4c; --ok-soft: #e4f5ea; --bad: #c8372d; --bad-soft: #fbe9e7;
-  --warn: #a86a00; --warn-soft: #fdf3dc; --gray-soft: #eef0f3;
+  --bg:        #F3F4F6;
+  --surface:   #FFFFFF;
+  --surface-2: #EBEDF1;
+  --line:      #D9DDE4;
+  --line-soft: #E6E9EE;
+  --text:      #161A21;
+  --text-2:    #525A66;
+  --text-3:    #868E9A;
+
+  --accent:     #2B57C1;
+  --accent-ink: #FFFFFF;
+  --accent-wash:#E5ECFB;
+  --accent-line:#B5C6EE;
+
+  --ok:        #2C7A54;
+  --ok-wash:   #DCEFE4;
+  --ok-line:   #A9D3BE;
+  --bad:       #B33A2E;
+  --bad-wash:  #F6DFDC;
+  --bad-line:  #E0AFA8;
+  --warn:      #9A6400;
+  --warn-wash: #FAEFD7;
+  --warn-line: #E5C88C;
+
+  --shadow-1: 0 1px 2px rgba(22,26,33,.06), 0 2px 8px rgba(22,26,33,.05);
+  --shadow-2: 0 2px 4px rgba(22,26,33,.07), 0 10px 28px rgba(22,26,33,.10);
+
+  --font-ui: Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --font-mono: "D2Coding","Cascadia Mono",Consolas,"SFMono-Regular",Menlo,monospace;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --page: 860px;
+  --topbar-h: 104px;
+
+  /* 예전 이름 (스크립트 안 인라인 스타일이 씀) */
+  --card: var(--surface);
+  --muted: var(--text-2);
+  --accent-soft: var(--accent-wash);
+  --ok-soft: var(--ok-wash);
+  --bad-soft: var(--bad-wash);
+  --warn-soft: var(--warn-wash);
+  --gray-soft: var(--surface-2);
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #14171c; --card: #1d2128; --text: #e6e8ec; --muted: #9aa3b2; --line: #2e333c;
-    --accent: #6b9cf0; --accent-soft: #23314a;
-    --ok: #5cc98a; --ok-soft: #1e3a2a; --bad: #f07a70; --bad-soft: #43231f;
-    --warn: #e6b04d; --warn-soft: #40331a; --gray-soft: #2a2f37;
+  :root:not([data-theme="light"]) {
+    --bg:        #111318;
+    --surface:   #1A1D23;
+    --surface-2: #232730;
+    --line:      #30353F;
+    --line-soft: #272B33;
+    --text:      #ECEEF2;
+    --text-2:    #A4ABB6;
+    --text-3:    #747C88;
+    --accent:     #8EADFF;
+    --accent-ink: #0B1430;
+    --accent-wash:#1B2541;
+    --accent-line:#33457A;
+    --ok:        #55BC8A;
+    --ok-wash:   #16291F;
+    --ok-line:   #2C4E3C;
+    --bad:       #EE7C6F;
+    --bad-wash:  #2E1B18;
+    --bad-line:  #52302B;
+    --warn:      #E6B04D;
+    --warn-wash: #30260F;
+    --warn-line: #5A4620;
+    --shadow-1: 0 1px 2px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.3);
+    --shadow-2: 0 2px 4px rgba(0,0,0,.45), 0 12px 32px rgba(0,0,0,.42);
   }
 }
+:root[data-theme="dark"] {
+  --bg:        #111318;
+  --surface:   #1A1D23;
+  --surface-2: #232730;
+  --line:      #30353F;
+  --line-soft: #272B33;
+  --text:      #ECEEF2;
+  --text-2:    #A4ABB6;
+  --text-3:    #747C88;
+  --accent:     #8EADFF;
+  --accent-ink: #0B1430;
+  --accent-wash:#1B2541;
+  --accent-line:#33457A;
+  --ok:        #55BC8A;
+  --ok-wash:   #16291F;
+  --ok-line:   #2C4E3C;
+  --bad:       #EE7C6F;
+  --bad-wash:  #2E1B18;
+  --bad-line:  #52302B;
+  --warn:      #E6B04D;
+  --warn-wash: #30260F;
+  --warn-line: #5A4620;
+  --shadow-1: 0 1px 2px rgba(0,0,0,.4), 0 2px 8px rgba(0,0,0,.3);
+  --shadow-2: 0 2px 4px rgba(0,0,0,.45), 0 12px 32px rgba(0,0,0,.42);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 15px/1.6 "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif; }
-.wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
-header h1 { font-size: 22px; margin: 4px 0; }
-header .sub { color: var(--muted); font-size: 14px; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 12px 0; }
-.notice { border-left: 4px solid var(--accent); }
-.notice ul { margin: 6px 0 0; padding-left: 20px; }
-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
-nav button { border: 1px solid var(--line); background: var(--card); color: var(--text);
-  padding: 8px 12px; border-radius: 999px; cursor: pointer; font: inherit; }
-nav button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-button.btn { border: 1px solid var(--accent); background: var(--accent); color: #fff; padding: 7px 14px;
-  border-radius: 8px; cursor: pointer; font: inherit; }
-button.btn.ghost { background: transparent; color: var(--accent); }
-button.btn.small { padding: 3px 10px; font-size: 13px; }
-button:disabled { opacity: .5; cursor: default; }
-select, input[type=text], textarea { font: inherit; color: var(--text); background: var(--bg);
-  border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
-textarea { width: 100%; min-height: 260px; font-family: "D2Coding", Consolas, monospace; font-size: 14px; }
+html { scroll-padding-top: calc(var(--topbar-h) + 12px); }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: var(--font-ui); font-size: 15.5px; line-height: 1.6;
+  -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; overflow-x: hidden;
+}
+h1, h2, h3 { margin: 0; font-weight: 680; letter-spacing: -.015em; text-wrap: balance; }
+h2 { font-size: 19px; margin-bottom: 10px; }
+h3 { font-size: 15.5px; margin: 18px 0 8px; }
+p { margin: 0 0 8px; }
+ul, ol { margin: 6px 0 10px; padding-left: 20px; }
+li { margin: 3px 0; }
+b { font-weight: 650; }
+code { font-family: var(--font-mono); font-size: .92em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.muted { color: var(--text-2); }
+.small { font-size: 13.5px; }
+.hidden { display: none !important; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); }
+.num { font-variant-numeric: tabular-nums; }
+.wrap { max-width: var(--page); margin: 0 auto; padding: 0 16px 64px; }
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  background: var(--bg); background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: saturate(1.6) blur(12px); -webkit-backdrop-filter: saturate(1.6) blur(12px);
+  border-bottom: 1px solid var(--line-soft);
+  margin: 0 -16px; padding: 12px 16px 0;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; flex: none; }
+.brand h1 { font-size: 17px; line-height: 1.2; }
+.brand .meta { font-size: 12.5px; color: var(--text-2); }
+.dday { margin-left: auto; text-align: right; line-height: 1.1; }
+.dday b { display: block; font-size: 22px; letter-spacing: -.02em; color: var(--accent); font-variant-numeric: tabular-nums; }
+.dday span { font-size: 11px; color: var(--text-3); }
+.progress { height: 4px; border-radius: 2px; background: var(--surface-2); margin: 10px 0 0; overflow: hidden; }
+.progress > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 2px; transition: width .4s ease; }
+nav#nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 8px 0 10px; margin: 0 -2px; }
+nav#nav::-webkit-scrollbar { display: none; }
+nav#nav button {
+  flex: none; border: 1px solid transparent; background: transparent; color: var(--text-2);
+  padding: 6px 12px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 550; white-space: nowrap;
+}
+nav#nav button:hover { background: var(--surface-2); color: var(--text); }
+nav#nav button.on { background: var(--text); color: var(--bg); }
+
+/* ============================================================
+   CARDS · NOTICE
+   ============================================================ */
+.card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg); padding: 18px; margin: 14px 0; box-shadow: var(--shadow-1); }
+.card .card { box-shadow: none; background: var(--bg); }
+details.notice { padding: 0; }
+details.notice > summary { list-style: none; cursor: pointer; padding: 14px 18px; display: flex; align-items: center; gap: 8px; font-weight: 650; }
+details.notice > summary::-webkit-details-marker { display: none; }
+details.notice > summary::after { content: "펼치기"; margin-left: auto; font-size: 12.5px; font-weight: 500; color: var(--text-3); }
+details.notice[open] > summary::after { content: "접기"; }
+details.notice > ul { margin: 0; padding: 0 18px 16px 38px; color: var(--text-2); font-size: 14px; }
+details.notice > ul b { color: var(--text); }
+#msg { border-color: var(--warn-line); background: var(--warn-wash); color: var(--text); font-size: 14px; }
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+button.btn, a.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+  padding: 8px 15px; border-radius: var(--r-md); cursor: pointer; font: inherit; font-size: 14.5px; font-weight: 600;
+  transition: filter .15s, background .15s; min-height: 38px;
+}
+button.btn:hover, a.btn:hover { filter: brightness(1.06); }
+button.btn.ghost, a.btn.ghost { background: transparent; color: var(--accent); border-color: var(--accent-line); }
+button.btn.ghost:hover, a.btn.ghost:hover { background: var(--accent-wash); filter: none; }
+button.btn.small { padding: 4px 11px; font-size: 13px; min-height: 30px; border-radius: 8px; }
+button:disabled { opacity: .45; cursor: default; filter: none !important; }
+select, input[type=text], input[type=password], textarea {
+  font: inherit; font-size: 15px; color: var(--text); background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px 11px; max-width: 100%;
+  transition: border-color .15s, box-shadow .15s;
+}
+select:focus, input:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+textarea { width: 100%; min-height: 80px; line-height: 1.55; resize: vertical; }
+textarea.mono { min-height: 240px; font-family: var(--font-mono); font-size: 14px; }
+details.guide { border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--bg); padding: 0 14px; margin: 0 0 14px; }
+details.guide > summary { cursor: pointer; padding: 10px 0; font-size: 13.5px; font-weight: 650; color: var(--text-2); list-style: none; display: flex; align-items: center; gap: 6px; }
+details.guide > summary::-webkit-details-marker { display: none; }
+details.guide > summary::before { content: "▸"; transition: transform .15s; }
+details.guide[open] > summary::before { transform: rotate(90deg); }
+details.guide[open] { padding-bottom: 8px; }
+details.guide > table { margin-bottom: 6px; }
+select { max-width: 100%; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.muted { color: var(--muted); }
-.small { font-size: 13px; }
-h2 { font-size: 18px; margin: 0 0 8px; }
-h3 { font-size: 16px; margin: 14px 0 6px; }
-.steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
-.steps button { flex: 1; min-width: 120px; border: 1px solid var(--line); background: var(--bg); color: var(--text);
-  padding: 10px; border-radius: 10px; cursor: pointer; font: inherit; text-align: left; }
-.steps button.on { border-color: var(--accent); background: var(--accent-soft); }
-.steps b { display: block; }
-.timer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.timer .clock { font-size: 26px; font-variant-numeric: tabular-nums; font-weight: 700; min-width: 90px; }
-.bar { height: 6px; background: var(--gray-soft); border-radius: 3px; overflow: hidden; flex: 1; min-width: 120px; }
-.bar > i { display: block; height: 100%; background: var(--accent); width: 0; }
-.tree { list-style: none; padding-left: 0; margin: 6px 0; }
-.tree .node { padding: 6px 8px; border-radius: 8px; margin: 3px 0; border: 1px solid transparent; }
-.tree .label { font-weight: 600; }
-.tree .node input[type=text] { width: 100%; margin-top: 4px; }
-.node.ok { background: var(--ok-soft); border-color: var(--ok); }
-.node.part { background: var(--warn-soft); border-color: var(--warn); }
-.node.bad { background: var(--bad-soft); border-color: var(--bad); }
-.chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 13px; margin: 2px 4px 2px 0; }
-.chip.ok { background: var(--ok-soft); color: var(--ok); }
-.chip.bad { background: var(--bad-soft); color: var(--bad); font-weight: 600; }
-.chip.warn { background: var(--warn-soft); color: var(--warn); }
-.chip.gray { background: var(--gray-soft); color: var(--muted); }
+input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+label.row { gap: 8px; cursor: pointer; color: var(--text-2); }
+
+/* ============================================================
+   오늘 화면
+   ============================================================ */
+.hero { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.hero h2 { font-size: 24px; margin: 2px 0 0; }
+.hero .sum { margin-left: auto; text-align: right; color: var(--text-2); font-size: 13.5px; }
+.hero .sum b { color: var(--text); font-size: 16px; }
+.callout { border-radius: var(--r-md); padding: 10px 13px; margin: 0 0 12px; font-size: 14px; border: 1px solid var(--warn-line); background: var(--warn-wash); }
+.callout.ok { border-color: var(--ok-line); background: var(--ok-wash); }
+.callout.info { border-color: var(--accent-line); background: var(--accent-wash); }
+.blist { display: flex; flex-direction: column; gap: 8px; }
+.bitem { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--bg); }
+.bitem.done { opacity: .72; }
+.bitem .idx { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: var(--surface-2); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.bitem.done .idx { background: var(--ok-wash); color: var(--ok); }
+.bitem .t { font-weight: 620; line-height: 1.35; }
+.bitem .t .id { color: var(--accent); margin-right: 6px; font-variant-numeric: tabular-nums; }
+.bitem .m { font-size: 12.5px; color: var(--text-2); margin-top: 2px; }
+.tasks { display: grid; gap: 8px; }
+.task { display: flex; gap: 12px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.task:first-child { border-top: 0; }
+.task .tm { font-variant-numeric: tabular-nums; font-weight: 650; color: var(--text-3); min-width: 46px; font-size: 13.5px; }
+
+/* ============================================================
+   블록 공부: 머리 · 단계 · 타이머
+   ============================================================ */
+.bhead .title { font-size: 18px; font-weight: 680; margin: 4px 0 6px; line-height: 1.35; }
+.metas { display: flex; flex-wrap: wrap; gap: 6px; }
+.meta-chip { font-size: 12.5px; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 14px 0 0; }
+.steps button {
+  border: 1px solid var(--line-soft); background: var(--bg); color: var(--text); padding: 9px 10px; border-radius: var(--r-md);
+  cursor: pointer; font: inherit; text-align: left; display: flex; flex-direction: column; gap: 1px; transition: border-color .15s, background .15s;
+}
+.steps button:hover { border-color: var(--accent-line); }
+.steps button.on { border-color: var(--accent); background: var(--accent-wash); }
+.steps button b { font-size: 14px; }
+.steps button span { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.timer {
+  position: sticky; top: calc(var(--topbar-h) + 8px); z-index: 20;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 12px 0 0; padding: 10px 14px; border-radius: var(--r-md);
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-2);
+}
+.timer .tname { font-size: 12.5px; color: var(--text-3); }
+.timer .clock { font-size: 26px; font-weight: 720; letter-spacing: -.02em; font-variant-numeric: tabular-nums; min-width: 82px; }
+.bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; flex: 1; min-width: 100px; }
+.bar > i { display: block; height: 100%; background: var(--accent); width: 0; transition: width 1s linear; }
+
+/* ============================================================
+   지도 (트리)
+   ============================================================ */
+.tree { list-style: none; padding: 0; margin: 8px 0; }
+.tree .node { position: relative; padding: 8px 10px; border-radius: var(--r-md); margin: 4px 0; border: 1px solid transparent; }
+.tree .node[data-depth="0"] { background: var(--surface-2); }
+.tree .node:not([data-depth="0"])::before { content: ""; position: absolute; left: -11px; top: 0; bottom: 0; border-left: 2px solid var(--line-soft); }
+.tree .label { font-weight: 620; font-size: 14.5px; }
+.tree .node[data-depth="0"] > .label { font-weight: 700; }
+.tree .node.mentor > .label { color: var(--warn); }
+.tree .node input[type=text] { width: 100%; margin-top: 6px; }
+.node.ok { background: var(--ok-wash); border-color: var(--ok-line); }
+.node.part { background: var(--warn-wash); border-color: var(--warn-line); }
+.node.bad { background: var(--bad-wash); border-color: var(--bad-line); }
+
+/* ============================================================
+   CHIPS · PILLS · TABLES · QUIZ
+   ============================================================ */
+.chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12.5px; margin: 3px 4px 0 0; border: 1px solid transparent; }
+.chip.ok { background: var(--ok-wash); color: var(--ok); border-color: var(--ok-line); }
+.chip.bad { background: var(--bad-wash); color: var(--bad); border-color: var(--bad-line); font-weight: 600; }
+.chip.warn { background: var(--warn-wash); color: var(--warn); border-color: var(--warn-line); }
+.chip.gray { background: var(--surface-2); color: var(--text-2); }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.pill.done { background: var(--ok-wash); color: var(--ok); }
+.pill.today { background: var(--accent-wash); color: var(--accent); }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
-th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
-.score { font-size: 28px; font-weight: 700; }
-.qcard { font-size: 17px; padding: 14px; border-radius: 10px; background: var(--bg); margin: 8px 0; }
-.qcard .path { color: var(--muted); font-size: 13px; }
-.hidden { display: none; }
-.pill { display: inline-block; padding: 0 8px; border-radius: 6px; background: var(--gray-soft); font-size: 13px; }
-.pill.done { background: var(--ok-soft); color: var(--ok); }
-.pill.today { background: var(--accent-soft); color: var(--accent); }
-@media (max-width: 600px) { .steps button { min-width: 45%; } }
+th { text-align: left; font-size: 12px; font-weight: 650; color: var(--text-3); letter-spacing: .02em; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+td { border-bottom: 1px solid var(--line-soft); padding: 9px 10px; vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+.tbl-wrap { overflow-x: auto; margin: 0 -4px; }
+.score { font-size: 30px; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.qcard { font-size: 17px; padding: 16px; border-radius: var(--r-md); background: var(--bg); border: 1px solid var(--line-soft); margin: 10px 0; }
+.qcard .path { color: var(--text-3); font-size: 12.5px; margin-bottom: 4px; }
+
+@media (max-width: 640px) {
+  :root { --topbar-h: 112px; }
+  body { font-size: 15px; }
+  .card { padding: 15px; border-radius: 14px; }
+  .steps { grid-template-columns: repeat(2, 1fr); }
+  .timer .clock { font-size: 22px; min-width: 70px; }
+  .hero .sum { margin-left: 0; text-align: left; }
+  .bitem { grid-template-columns: 30px 1fr; }
+  .bitem .act { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+  select { width: 100%; }
+  input[type=text], input[type=password], textarea, select { font-size: 16px; }
+  .card > table, .card > div > table { display: block; overflow-x: auto; }
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-<header>
-  <h1>🔐 정보보안기사 실기 연습장</h1>
-  <div class="sub"><span id="headerSub"></span><span id="syncHead"></span></div>
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+    </div>
+    <div>
+      <h1>정보보안기사 실기 연습장</h1>
+      <div class="meta"><span id="headerSub"></span><span id="syncHead"></span></div>
+    </div>
+    <div class="dday"><b id="ddayNum"></b><span>11.14(토) 실기</span></div>
+  </div>
+  <div class="progress" title="1회독 진행"><i id="progBar"></i></div>
+  <nav id="nav">
+    <button data-view="today">오늘</button>
+    <button data-view="study">블록 공부</button>
+    <button data-view="morning">아침 복습</button>
+    <button data-view="quiz">저녁 퀴즈</button>
+    <button data-view="glossary">어휘장</button>
+    <button data-view="pairs">헷갈리는 쌍</button>
+    <button data-view="records">기록·백업</button>
+    <button data-view="help">사용법</button>
+  </nav>
 </header>
 
-<div class="card notice">
-  <b>먼저 알아둘 것</b>
+<details class="card notice" id="notice">
+  <summary>ⓘ 먼저 알아둘 것</summary>
   <ul>
     <li><b>이 페이지는 Claude에 연결되지 않아요.</b> 인터넷 연결은 "기록·백업" 탭에서 동기화를 켰을 때 내 GitHub 비공개 Gist에만 해요.</li>
     <li><b>지도(트리)와 키워드는 미리 들어 있지 않아요.</b> 전부 내가 <b>알기사 교재를 보고 직접</b> 입력해요. 그래서 교재와 어긋날 일이 없어요.</li>
-    <li><b>채점은 글자 비교예요.</b> ② 읽기 때 내가 적은 키워드가 ③ 인출 답에 들어 있는지만 확인해요. <b>내용이 맞는지 판단하지는 못해요.</b> 내용 피드백이 필요하면 <b>"결과 복사"</b>를 눌러 Claude Code 채팅에 붙여 넣으세요.</li>
-    <li><b>기록은 이 브라우저에 자동 저장돼요.</b> PC·웹·폰에서 같은 기록을 쓰려면 <b>"기록·백업" 탭에서 클라우드 동기화</b>를 켜세요. 동기화를 안 켜면 브라우저 기록을 지우거나 다른 브라우저로 열 때 안 보여요.</li>
+    <li><b>채점은 글자 비교예요.</b> ② 읽기 때 내가 적은 키워드가 ③ 인출 답에 들어 있는지만 확인해요. <b>내용이 맞는지 판단하지는 못해요.</b> 내용 피드백이 필요하면 <b>"결과 복사"</b>를 눌러 Claude에 붙여 넣으세요.</li>
+    <li><b>기록은 이 브라우저에 자동 저장돼요.</b> PC·웹·폰에서 같은 기록을 쓰려면 <b>"기록·백업" 탭에서 클라우드 동기화</b>를 켜세요.</li>
   </ul>
-</div>
-
-<nav id="nav">
-  <button data-view="today">오늘</button>
-  <button data-view="study">블록 공부</button>
-  <button data-view="morning">아침 복습</button>
-  <button data-view="quiz">저녁 퀴즈</button>
-  <button data-view="glossary">어휘장</button>
-  <button data-view="pairs">헷갈리는 쌍</button>
-  <button data-view="records">기록·백업</button>
-  <button data-view="help">사용법</button>
-</nav>
+</details>
 
 <main id="main"></main>
 </div>
@@ -162,7 +400,7 @@ const BLOCKS = [
   ["B48","2026-10-27","PART 6 법규","★ S18 · 1. 법규 개요, 2. 개인정보 보호법","791~812",[610,637]],
   ["B49","2026-10-27","PART 6 법규","★ S18 · 3. 안전성 확보조치 기준, 4. 정보통신망법, 5. 정보통신기반 보호법","813~834",[638,665]],
   ["B50","2026-10-27","PART 6 법규","S18 · 6. 전자서명법, 7. 위치정보법 + PART 5·6 트리","835~끝",[666,686]],
-].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title,pages,dan,pn}; });
+].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 const EXAM_DATE = "2026-11-14";
 function stepMins(b) { const p = b ? b.pn : 20; return [p < 10 ? 5 : 10, Math.round(p * 3.5), Math.max(10, Math.round(p * 1.5)), 10]; }
@@ -333,12 +571,15 @@ document.getElementById("nav").addEventListener("click", e => { const v = e.targ
 
 function render() {
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.view === view));
+  const on = document.querySelector("#nav button.on"); if (on && on.scrollIntoView) on.scrollIntoView({ block: "nearest", inline: "nearest" });
   const done = BLOCKS.filter(b => isDone(b.id)).length;
   const d = dday();
-  $("#headerSub").textContent = `오늘 ${fmtDate(todayStr())} · 실기 11.14(토)까지 D-${d} · 1회독 ${done}/${BLOCKS.length} 블록 완료`;
+  $("#headerSub").textContent = `${fmtDate(todayStr())} · 1회독 ${done}/${BLOCKS.length} 블록`;
   $("#syncHead").textContent = syncOn() ? " · ☁ " + syncText() : "";
+  $("#ddayNum").textContent = d > 0 ? `D-${d}` : d === 0 ? "D-DAY" : `D+${-d}`;
+  $("#progBar").style.width = (done / BLOCKS.length * 100) + "%";
   const main = $("#main"); main.innerHTML = "";
-  main.append(h("div", { id: "msg", class: "card hidden", style: "border-color:var(--warn)" }));
+  main.append(h("div", { id: "msg", class: "card hidden" }));
   ({ today: viewToday, study: viewStudy, morning: viewMorning, quiz: viewQuiz, glossary: viewGlossary, pairs: viewPairs, records: viewRecords, help: viewHelp })[view](main);
   paintTimer();
 }
@@ -347,39 +588,55 @@ function render() {
 function viewToday(main) {
   const t = todayStr();
   const todays = BLOCKS.filter(b => b.date === t);
-  const card = h("div", { class: "card" }, h("h2", {}, `오늘 ${fmtDate(t)}`));
-  // 확인 지점
+  const total = todays.reduce((a, b) => a + blockMin(b), 0);
+  const pages = todays.reduce((a, b) => a + b.pn, 0);
+  const doneN = todays.filter(b => isDone(b.id)).length;
+  const card = h("div", { class: "card" },
+    h("div", { class: "hero" },
+      h("div", {}, h("div", { class: "eyebrow" }, "오늘"), h("h2", {}, fmtDate(t))),
+      todays.length ? h("div", { class: "sum" }, h("b", {}, `${doneN} / ${todays.length} 블록`), h("br"), `이론 ${pages}쪽 · 약 ${fmtMin(total)}`) : null));
   if (t >= "2026-10-18" && t <= "2026-10-19") {
     const ok = ["B1","B2","B3","B4","B5","B6","B7","B8","B9","B10","B11","B12"].every(isDone);
-    card.append(h("p", {}, ok ? "✅ 확인 지점 통과: B1~B12 완료. 계획 그대로 가요."
+    card.append(h("div", { class: "callout" + (ok ? " ok" : "") }, ok ? "✅ 확인 지점 통과: B1~B12 완료. 계획 그대로 가요."
       : "⚠️ 확인 지점: 10.18 밤까지 B12를 못 끝냈으면, 훑기 블록(B21·B38·B39)을 각 30분으로 줄이고 그 시간에 밀린 블록을 해요."));
   }
-  if (t === "2026-10-19") card.append(h("p", {}, h("b", {}, "📝 오늘 아침 첫 일정: 실기 원서 접수 (10.19 ~ 10.22)")));
-  if (t === "2026-10-22") card.append(h("p", {}, h("b", {}, "📝 원서 접수 마감일이에요. 접수했는지 확인하세요.")));
+  if (t === "2026-10-19") card.append(h("div", { class: "callout info" }, h("b", {}, "📝 오늘 아침 첫 일정: 실기 원서 접수"), " (10.19 ~ 10.22)"));
+  if (t === "2026-10-22") card.append(h("div", { class: "callout" }, h("b", {}, "📝 원서 접수 마감일이에요."), " 접수했는지 확인하세요."));
   if (!todays.length) {
     const next = BLOCKS.find(b => b.date > t);
-    card.append(h("p", { class: "muted" }, next ? `오늘 배정된 블록이 없어요. 다음은 ${fmtDate(next.date)} ${next.id}부터예요.` : "1회독 블록 일정이 끝났어요. 총정리는 \"아침 복습\"에서 날짜를 골라 트리를 다시 채우세요."));
+    card.append(h("p", { class: "muted" }, next ? `오늘 배정된 블록이 없어요. 다음은 ${fmtDate(next.date)} ${next.id}부터예요.` : "1회독 블록 일정이 끝났어요. 총정리는 \"아침 복습\"에서 PART를 골라 지도를 다시 채우세요."));
+    if (next) card.append(h("button", { class: "btn ghost", onclick: () => { studyId = next.id; studyStep = 0; timerSet(0); go("study"); } }, `${next.id} 미리 보기`));
   } else {
-    const tb = h("table", {}, h("tr", {}, h("th", {}, "순서"), h("th", {}, "블록"), h("th", {}, "이론편"), h("th", {}, "시간"), h("th", {}, "상태"), h("th", {})));
-    todays.forEach((b, i) => tb.append(h("tr", {},
-      h("td", {}, `${i + 1}번째`),
-      h("td", {}, h("b", {}, b.id), " ", b.title),
-      h("td", {}, "p." + b.pages + ` (${b.pn}쪽)`),
-      h("td", {}, fmtMin(blockMin(b))),
-      h("td", {}, isDone(b.id) ? h("span", { class: "pill done" }, "완료") : h("span", { class: "pill" }, "아직")),
-      h("td", {}, h("button", { class: "btn small", onclick: () => { studyId = b.id; studyStep = 0; timerSet(0); go("study"); } }, "공부 시작")))));
-    card.append(tb);
-    card.append(h("p", { class: "small muted" }, `오늘 블록 시간 합계 ${fmtMin(todays.reduce((a, b) => a + blockMin(b), 0))} (휴식 포함, 점심·저녁 제외). 블록마다 쪽수가 달라서 시간도 달라요.`));
-    card.append(h("h3", {}, "저녁 할 일"));
-    card.append(h("ul", {},
-      h("li", {}, "18:30 ", h("b", {}, "저녁 퀴즈"), ": 오늘 블록을 섞어서 키워드 퀴즈 (1시간)"),
-      h("li", {}, "19:30 ", h("b", {}, "단답형"), ": " + todays.map(b => `${b.id} ${danHalf(b)}`).join(" · ") + " (배정량의 앞 절반)")));
+    const list = h("div", { class: "blist" });
+    todays.forEach((b, i) => {
+      const dn = isDone(b.id);
+      list.append(h("div", { class: "bitem" + (dn ? " done" : "") },
+        h("div", { class: "idx" }, dn ? "✓" : String(i + 1)),
+        h("div", {}, h("div", { class: "t" }, h("span", { class: "id" }, b.id), b.title),
+          h("div", { class: "m" }, `이론편 p.${b.pages} · ${b.pn}쪽 · ${fmtMin(blockMin(b))}`)),
+        h("div", { class: "act" }, dn ? h("span", { class: "pill done" }, "완료") : null,
+          h("button", { class: "btn small" + (dn ? " ghost" : ""), onclick: () => { studyId = b.id; studyStep = 0; timerSet(0); go("study"); } }, dn ? "다시 보기" : "시작"))));
+    });
+    card.append(list);
+    card.append(h("p", { class: "small muted", style: "margin:10px 0 0" }, "블록 시간은 휴식 포함, 점심·저녁 제외예요. 쪽수에 따라 블록마다 달라요."));
   }
   main.append(card);
   const y = addDays(t, -1); const yb = BLOCKS.filter(b => b.date === y);
-  if (yb.length) main.append(h("div", { class: "card" }, h("h2", {}, "아침 복습 (07:30)"),
-    h("p", {}, `어제(${fmtDate(y)}) 블록 ${yb.map(b => b.id).join(", ")}의 트리를 다시 채워요. `),
-    h("button", { class: "btn", onclick: () => go("morning") }, "아침 복습 하러 가기")));
+  const tasks = h("div", { class: "tasks" });
+  if (yb.length) tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "07:30"),
+    h("div", { style: "flex:1" }, h("b", {}, "아침 복습"), h("div", { class: "small muted" }, `어제(${fmtDate(y)}) ${yb.map(b => b.id).join(", ")} 지도 다시 채우기`)),
+    h("button", { class: "btn ghost small", onclick: () => { morningDate = y; morningIdx = 0; go("morning"); } }, "열기")));
+  if (todays.length) {
+    tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "18:30"),
+      h("div", { style: "flex:1" }, h("b", {}, "저녁 퀴즈"), h("div", { class: "small muted" }, "오늘 칸과 어휘를 섞어서 떠올리기 (1시간)")),
+      h("button", { class: "btn ghost small", onclick: () => { Q = null; go("quiz"); } }, "열기")));
+    tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "19:30"),
+      h("div", { style: "flex:1" }, h("b", {}, "단답형 (문제편)"), h("div", { class: "small muted" }, todays.map(b => `${b.id} ${danHalf(b)}`).join(" · ") + " — 배정량의 앞 절반"))));
+    tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "끝"),
+      h("div", { style: "flex:1" }, h("b", {}, syncOn() ? "동기화 확인" : "백업 내보내기"), h("div", { class: "small muted" }, syncOn() ? "위쪽에 ☁ 동기화됨이 떠 있으면 끝" : "기록·백업 → 백업 내보내기 (동기화를 켜면 필요 없어요)")),
+      h("button", { class: "btn ghost small", onclick: () => go("records") }, "열기")));
+  }
+  if (tasks.childNodes.length) main.append(h("div", { class: "card" }, h("h2", {}, "그 밖의 할 일"), tasks));
 }
 
 // ───────── 블록 공부 ─────────
@@ -388,12 +645,15 @@ function viewStudy(main) {
   const b = BLOCK[studyId];
   const sel = h("select", { onchange: e => { studyId = e.target.value; studyStep = 0; timerSet(0); render(); } },
     BLOCKS.map(x => h("option", { value: x.id, selected: x.id === studyId ? "" : false }, `${x.id} · ${fmtDate(x.date)} · ${x.title}${isDone(x.id) ? " ✓" : ""}`)));
-  main.append(h("div", { class: "card" },
-    h("div", { class: "row" }, h("b", {}, "블록 선택"), sel),
-    h("p", { style: "margin:10px 0 0" }, h("b", {}, `${b.id} · ${b.part}`), ` — ${b.title}`),
-    h("p", { class: "muted small", style: "margin:2px 0" }, `이론편 p.${b.pages} (${b.pn}쪽, 블록 시간 ${fmtMin(blockMin(b))}) · 저녁 단답 ${danHalf(b)} (전체 배정 p.${b.dan[0]}~${b.dan[1]})`),
+  main.append(h("div", { class: "card bhead" },
+    h("div", { class: "row", style: "justify-content:space-between" }, h("span", { class: "eyebrow" }, `${b.part} · ${fmtDate(b.date)}`), isDone(b.id) ? h("span", { class: "pill done" }, "완료") : null),
+    h("div", { class: "title" }, h("span", { style: "color:var(--accent);margin-right:8px" }, b.id), b.title),
+    h("div", { class: "metas" },
+      h("span", { class: "meta-chip" }, `이론편 p.${b.pages}`), h("span", { class: "meta-chip" }, `${b.pn}쪽`),
+      h("span", { class: "meta-chip" }, `블록 ${fmtMin(blockMin(b))}`), h("span", { class: "meta-chip" }, `저녁 단답 ${danHalf(b)}`)),
+    h("div", { class: "row", style: "margin-top:12px" }, h("span", { class: "small muted" }, "다른 블록"), sel),
     h("div", { class: "steps" }, STEPS.map((s, i) => h("button", { class: i === studyStep ? "on" : "", onclick: () => { studyStep = i; timerSet(i); render(); } },
-      h("b", {}, s.name), h("span", { class: "muted small" }, stepMins(b)[i] + "분")))),
+      h("b", {}, s.name), h("span", {}, stepMins(b)[i] + "분")))),
     timerEl()));
   const area = h("div", { class: "card" }); main.append(area);
   [stepStructure, stepRead, stepRecall, stepRest][studyStep](area, b);
@@ -401,7 +661,7 @@ function viewStudy(main) {
 
 function stepStructure(area, b) {
   const data = blk(b.id);
-  area.append(h("h2", {}, "① 구조: 지도 만들기 (10분)"),
+  area.append(h("h2", {}, `① 구조: 지도 만들기 (${stepMins(b)[0]}분)`),
     h("p", {}, h("b", {}, "이론편"), "을 펴요 (문제편 아님). ", h("b", {}, "본문은 읽지 않아요."), " 이론편 ", h("b", {}, `p.${b.pages}`), "를 처음부터 끝까지 빠르게 넘기면서 ", h("b", {}, "제목만"), " 옮겨 적어요."),
     h("ol", {},
       h("li", {}, "본문 제목을 ", h("b", {}, "교재 번호까지 그대로"), " 한 줄씩 적어요. 한 줄이 지도의 한 칸이에요."),
@@ -412,7 +672,8 @@ function stepStructure(area, b) {
       h("li", {}, "블록 하나에 보통 15 ~ 30칸이 나와요. ② 읽기 때 ", h("b", {}, "키워드는 가장 작은 제목(1), 2) …)과 보안멘토 칸에만"), " 적어요. 1.이나 (1) 같은 큰 제목 칸은 비워 둬도 돼요 (비운 칸은 채점에서 빠져요)."),
       h("li", {}, "번호가 없는 제목은 스페이스 2칸(또는 Tab)으로 들여 써요."),
       h("li", {}, "10분 안에 끝내요. 덜 끝났으면 ② 읽으면서 추가해도 돼요. 같은 이름의 칸은 키워드가 그대로 남아요.")));
-  const ta = h("textarea", { placeholder: "예) 교재 제목을 번호까지 그대로\n1. 윈도우 기본 학습\n(1) 윈도우 인증과정\n1) 윈도우 인증 구성요소\n2) 로컬 인증\n3) 원격(도메인) 인증\n4) SAM 파일 접근 통제 설정\n보안멘토: SAM 파일\n(2) 윈도우 보안 식별자(SID)\n1) 개요" });
+  foldGuide(area, "structure");
+  const ta = h("textarea", { class: "mono", placeholder: "예) 교재 제목을 번호까지 그대로\n1. 윈도우 기본 학습\n(1) 윈도우 인증과정\n1) 윈도우 인증 구성요소\n2) 로컬 인증\n3) 원격(도메인) 인증\n4) SAM 파일 접근 통제 설정\n보안멘토: SAM 파일\n(2) 윈도우 보안 식별자(SID)\n1) 개요" });
   ta.value = data.outline;
   ta.addEventListener("keydown", e => { if (e.key === "Tab") { e.preventDefault(); const s = ta.selectionStart; ta.setRangeText("  ", s, ta.selectionEnd, "end"); ta.dispatchEvent(new Event("input")); } });
   const preview = h("div");
@@ -423,10 +684,20 @@ function stepStructure(area, b) {
   paint();
 }
 
+// 단계 설명은 접을 수 있게 (방법을 익히면 접어 두고 공부 칸만 보기). 접힘 상태는 단계마다 기억해요.
+function foldGuide(area, key, keepLast) {
+  const kids = [...area.children]; const head = kids[0];
+  const move = kids.slice(1, kids.length - (keepLast || 0)); if (!move.length) return;
+  const d = h("details", { class: "guide" }, h("summary", {}, "하는 방법"), ...move);
+  let closed = false; try { closed = localStorage.getItem("infosec-guide-" + key) === "1"; } catch (e) {}
+  d.open = !closed;
+  d.addEventListener("toggle", () => { try { localStorage.setItem("infosec-guide-" + key, d.open ? "0" : "1"); } catch (e) {} });
+  head.after(d);
+}
 function treeView(nodes, inner) {
   const ul = h("ul", { class: "tree" });
   for (const n of nodes) {
-    const li = h("li", { class: "node", style: `margin-left:${n.depth * 22}px`, "data-path": n.path }, h("div", { class: "label" }, n.mentor ? "💡 " : "", n.label));
+    const li = h("li", { class: "node" + (n.mentor ? " mentor" : ""), style: `margin-left:${n.depth * 20}px`, "data-path": n.path, "data-depth": String(n.depth) }, h("div", { class: "label" }, n.mentor ? "💡 " : "", n.label));
     const x = inner(n, li); if (x) li.append(x);
     ul.append(li);
   }
@@ -450,6 +721,7 @@ function stepRead(area, b) {
     h("p", {}, "한 칸에 이 세 종류에서 하나씩 고르면 돼요: ", h("b", {}, "① 이름·정의"), " · ", h("b", {}, "② 숫자·명령어·옵션·포트"), " · ", h("b", {}, "③ 왜·위험·대응 한 단어")),
     h("p", { class: "small muted" }, "예) 특수 권한 칸 → SetUID|SUID, 4000, 소유자 권한으로 실행   (같은 뜻의 표현은 | 로 묶으면 둘 중 하나만 써도 맞음)"),
     h("p", { class: "small" }, `⏱ 속도: 쪽당 3.5분 (${b.pn}쪽 → ${rMin}분). `, halfPage ? h("b", {}, `${Math.round(rMin / 2)}분이 지났을 때 p.${halfPage} 근처`) : "절반 시간에 절반 쪽수", `까지 와 있어야 해요. 늦었으면 남은 부분은 ★만 읽어요. ${rMin}분이 끝나면 다 못 읽었어도 멈춰요.`));
+  foldGuide(area, "read", 1);
   area.append(askPanel(b, nodes));
   if (!nodes.length) { area.append(h("p", {}, "아직 지도가 없어요. ① 구조에서 소제목을 먼저 적어 주세요.")); return; }
   area.append(h("h3", {}, "칸마다 키워드 메모"));
@@ -633,6 +905,7 @@ function stepRecall(area, b) {
           h("li", {}, h("b", {}, "이해는 했는데 까먹었다"), " → 키워드만 다시 보기"),
           h("li", {}, h("b", {}, "다른 개념과 섞였다"), " (노랑 '섞임') → \"헷갈리는 쌍\"에 등록")))),
       h("tr", {}, h("td", {}, h("b", {}, `${c2} ~ ${cMin}분`)), h("td", {}, "아래 ", h("b", {}, "\"다시 인출하기\""), "를 눌러 틀린 칸 위주로 한 번 더 채워요."))));
+  foldGuide(area, "recall");
   area.append(recallPanel(b.id, () => {}));
   const gr = glossaryRecall(b.id); if (gr) area.append(gr);
   area.append(h("div", { class: "row", style: "margin-top:10px" },
@@ -991,6 +1264,7 @@ function viewHelp(main) {
       h("li", {}, "타이머는 새로고침하면 처음부터 다시 시작해요."))));
 }
 
+(function () { const n = document.getElementById("notice"); let closed = false; try { closed = localStorage.getItem("infosec-notice-closed") === "1"; } catch (e) {} n.open = !closed; n.addEventListener("toggle", () => { try { localStorage.setItem("infosec-notice-closed", n.open ? "0" : "1"); } catch (e) {} }); })();
 SY = loadSyncCfg();
 if (syncOn()) { syncReady = true; render(); doSync(); startPoll(); } else render();
 document.addEventListener("visibilitychange", () => { if (!document.hidden && syncOn()) doSync(); });
