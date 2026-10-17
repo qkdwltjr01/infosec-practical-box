@@ -1811,6 +1811,7 @@ function mergeStates(A, B) {
     for (const a of [...(x.attempts || []), ...(y.attempts || [])]) { const k = [a.date, a.time, a.hit, a.total].join("|"); if (!seen.has(k)) { seen.add(k); attempts.push(a); } }
     attempts.sort((p, q) => (p.date + p.time).localeCompare(q.date + q.time));
     out.blocks[id] = { outline: w.outline, kw: w.kw, u: Math.max(+x.u || 0, +y.u || 0), attempts };
+    if (w.starts || x.starts || y.starts) out.blocks[id].starts = w.starts || x.starts || y.starts;
   }
   // 칸별 맞음/틀림 횟수: 큰 쪽 (더하면 다시 동기화할 때마다 불어나요)
   for (const k of new Set([...Object.keys(A.nodeStats), ...Object.keys(B.nodeStats)])) {
@@ -1836,6 +1837,15 @@ function mergeStates(A, B) {
   return out;
 }
 
+function keepRefs(old, m) {
+  for (const id in m.blocks) { const cur = old.blocks[id]; if (cur && cur !== m.blocks[id]) { Object.assign(cur, m.blocks[id]); m.blocks[id] = cur; } }
+  for (const key of ["glossary", "pairs"]) {
+    const byId = new Map((old[key] || []).filter(x => x && x.id).map(x => [x.id, x]));
+    m[key] = m[key].map(x => { const cur = x && byId.get(x.id); return cur ? Object.assign(cur, x) : x; });
+  }
+  for (const k in m.notes) { const cur = old.notes && old.notes[k]; if (cur && typeof cur === "object") m.notes[k] = Object.assign(cur, m.notes[k]); }
+  return m;
+}
 async function gh(path, method, body) {
   let r;
   try {
@@ -1866,7 +1876,7 @@ async function doSync() {
   try {
     const remote = await pullRemote();
     const before = JSON.stringify(S);
-    if (remote) S = mergeStates(S, remote);
+    if (remote) S = keepRefs(S, mergeStates(S, remote));
     const changed = JSON.stringify(S) !== before;
     if (changed) { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
     if (!remote || JSON.stringify(S) !== JSON.stringify(remote)) await gh("/gists/" + SY.gistId, "PATCH", { files: { [GIST_FILE]: { content: JSON.stringify(S) } } });
