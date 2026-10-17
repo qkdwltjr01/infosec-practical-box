@@ -336,6 +336,12 @@ input[type=number] { font: inherit; color: var(--text); background: var(--surfac
 .ai-head { font-size: 12px; font-weight: 650; color: var(--text-3); margin-bottom: 6px; }
 .ai-a { font-size: 14.5px; line-height: 1.7; margin: 4px 0 8px; }
 .ai-a code { font-size: 13px; }
+.ai-a .md-li { position: relative; margin: 2px 0; }
+.ai-a .md-bul { position: absolute; margin-left: -1em; color: var(--text-2); }
+.ai-a .md-h { margin: 12px 0 4px; }
+.ai-a .md-h:first-child { margin-top: 0; }
+.ai-a .md-gap { height: 6px; }
+.ai-a .md-mentor { margin-top: 6px; margin-bottom: 10px; padding: 8px 12px; border-left: 3px solid var(--warn); background: var(--warn-wash); border-radius: 0 8px 8px 0; color: var(--text); }
 .ai-q { font-size: 13.5px; font-weight: 600; color: var(--accent); margin: 10px 0 2px; }
 details.ai-saved { margin-top: 4px; }
 details.ai-saved > summary { cursor: pointer; font-size: 12.5px; color: var(--text-3); }
@@ -1144,12 +1150,32 @@ async function aiStream(messages, onText) {
 // 굵게·목록·코드만 그려요 (나머지는 그대로 글자)
 function mdLite(text) {
   const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return esc(text).split("\n").map(line => {
-    let l = line.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
-    if (/^\s*[-*]\s+/.test(l)) l = "<span class=\"md-li\">• " + l.replace(/^\s*[-*]\s+/, "") + "</span>";
-    else if (/^\s*#{1,4}\s+/.test(l)) l = "<b>" + l.replace(/^\s*#{1,4}\s+/, "") + "</b>";
-    return l;
-  }).join("<br>");
+  const inl = s => s.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  const BUL = ["•", "◦", "▪", "·"];
+  const mentor = (s, lv) => `<div class="md-mentor" style="margin-left:${lv * 1.25}em">${inl(s.replace(/^💡\s*/, "💡 "))}</div>`;
+  const out = [];
+  for (const raw of esc(text).split("\n")) {
+    if (!raw.trim()) { out.push('<div class="md-gap"></div>'); continue; }
+    const m = raw.match(/^(\s*)[-*•]\s+(.*)$/);
+    if (m) {
+      const lv = Math.min(5, Math.floor(m[1].replace(/\t/g, "  ").length / 2));
+      let body = m[2];
+      if (/^💡/.test(body)) { out.push(mentor(body, lv)); continue; }
+      // 같은 줄 뒤에 붙은 "💡 섹션 보안멘토: …"는 아래로 떼어 상자로
+      const k = body.indexOf("💡");
+      let tail = "";
+      if (k > 0) { tail = body.slice(k); body = body.slice(0, k).replace(/[\s—–-]+$/, ""); }
+      out.push(`<div class="md-li" style="padding-left:${lv * 1.25 + 1}em"><span class="md-bul">${BUL[lv % BUL.length]}</span>${inl(body)}</div>`);
+      if (tail) out.push(mentor(tail, lv + 1));
+      continue;
+    }
+    const t = raw.trim();
+    if (/^💡/.test(t)) { out.push(mentor(t, 0)); continue; }
+    if (/^#{1,4}\s+/.test(t)) { out.push(`<div class="md-h">${inl(t.replace(/^#{1,4}\s+/, ""))}</div>`); continue; }
+    if (/^\*\*[^*]+\*\*/.test(t)) { out.push(`<div class="md-h">${inl(t)}</div>`); continue; }
+    out.push(`<div class="md-p">${inl(t)}</div>`);
+  }
+  return out.join("").replace(/^(<div class="md-gap"><\/div>)+/, "");
 }
 // 답 상자 하나: 질문을 보내고, 이어서 더 물어볼 수 있어요
 function aiThread(firstUserMsg, opts) {
@@ -1394,7 +1420,7 @@ ${secM}
 읽기 전에 3분 안에 읽을 "길잡이"를 써 줘. 학생은 어휘력이 약하고 이 단원을 처음 공부해. 목표는 본문을 읽을 때 "아 이게 그 얘기구나" 하고 바로 이해되게 하는 거야.
 형식 (굵게와 목록만, 전체 25줄 안팎):
 **한눈에 보기** — 이 블록이 무엇에 관한 이야기인지 2 ~ 3줄. 일상 비유 하나.
-**제목별 미리보기** — 지도의 제목 흐름대로, 가장 작은 제목·보안멘토·주석마다 1줄씩 "이게 뭐고 왜 나오는지"를 쉬운 말로. 큰 제목은 묶어서 짧게. 섹션 보안멘토가 짚은 포인트가 이 제목에 해당하면 그 줄에 "💡 섹션 보안멘토: …"로 이어 줘.
+**제목별 미리보기** — 지도의 들여쓰기를 그대로 살린 중첩 목록으로 써 (단계마다 공백 2칸 들여쓰고 "- "로 시작, 큰 제목도 한 줄씩 넣어서 어디 밑인지 보이게). 가장 작은 제목·보안멘토·주석마다 "이게 뭐고 왜 나오는지"를 쉬운 말로 1줄. 섹션 보안멘토가 짚은 포인트가 어떤 제목에 해당하면, 그 제목 바로 아랫줄에 한 단계 더 들여써서 "- 💡 섹션 보안멘토: …"로 따로 1 ~ 2줄 써 줘 (같은 줄에 붙이지 마).
 **먼저 알아둘 말** — 본문에 나올 어려운 용어 4 ~ 6개, 각각 "용어 = 쉬운 뜻" 한 줄.
 **읽으면서 찾을 것** — 실기(단답·서술·실무)에 잘 나오는 포인트를 질문 3개로 (답은 쓰지 마).
 지도에 없는 세부 내용·숫자·명령어 옵션은 지어내지 말고, 확실하지 않으면 "본문에서 확인"이라고 써.` }], t => { body.innerHTML = mdLite(t); });
