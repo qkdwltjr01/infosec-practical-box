@@ -445,6 +445,7 @@ body.drawer-on .fab { display: none; }
   <nav id="nav">
     <button data-view="today">오늘</button>
     <button data-view="study">블록 공부</button>
+    <button data-view="notes">정리 모음</button>
     <button data-view="morning">아침 복습</button>
     <button data-view="quiz">저녁 퀴즈</button>
     <button data-view="glossary">어휘장</button>
@@ -702,8 +703,78 @@ function render() {
   document.body.classList.remove("drawer-on");
   const main = $("#main"); main.innerHTML = "";
   main.append(h("div", { id: "msg", class: "card hidden" }));
-  ({ today: viewToday, study: viewStudy, morning: viewMorning, quiz: viewQuiz, glossary: viewGlossary, pairs: viewPairs, records: viewRecords, help: viewHelp })[view](main);
+  ({ today: viewToday, study: viewStudy, morning: viewMorning, notes: viewNotes, quiz: viewQuiz, glossary: viewGlossary, pairs: viewPairs, records: viewRecords, help: viewHelp })[view](main);
   paintTimer();
+}
+
+// ───────── 정리 모음: 저장된 길잡이·총정리·내 지도를 블록별로 ─────────
+let notesFilter = { part: "", q: "" };
+function mapView(d) {
+  const box = h("div", { class: "ai-a" });
+  for (const n of parseOutline(d.outline)) {
+    const kws = kwList(d.kw[n.path]);
+    const name = n.mentor ? n.label.replace(/^(보안\s*멘토|주석)\s*:?\s*/, "") : n.label;
+    if (n.mentor && !n.note) box.append(h("div", { class: "md-mentor", style: `margin-left:${n.depth * 1.25}em` }, "💡 ", h("b", {}, name), kws.length ? " — " + kws.join(", ") : ""));
+    else box.append(h("div", { class: "md-li", style: `padding-left:${n.depth * 1.25 + 1}em` },
+      h("span", { class: "md-bul" }, n.note ? "" : ["•", "◦", "▪", "·"][n.depth % 4]),
+      n.note ? "📌 " : null, n.depth === 0 ? h("b", {}, name) : name,
+      kws.length ? h("span", { class: "muted" }, "  :: " + kws.join(", ")) : null));
+  }
+  return box;
+}
+function aiDiv(t) { const x = h("div", { class: "ai-a" }); x.innerHTML = mdLite(t); return x; }
+function viewNotes(main) {
+  const parts = [...new Set(BLOCKS.map(b => b.part))];
+  const sel = h("select", {}, h("option", { value: "" }, "전체 PART"), parts.map(p => h("option", { value: p }, p)));
+  sel.value = notesFilter.part;
+  const q = h("input", { type: "text", placeholder: "🔍 검색 (예: SAM, iptables)", style: "flex:1;min-width:160px" });
+  q.value = notesFilter.q;
+  const list = h("div");
+  main.append(h("div", { class: "card" }, h("h2", {}, "🗂 정리 모음"),
+    h("p", { class: "small" }, "블록마다 저장된 것을 모아 봐요. ", h("b", {}, "🧾 총정리"), "(③ 인출 채점 뒤 AI 정리) · ", h("b", {}, "🧭 길잡이"), "(② 읽기 전 AI 설명) · ", h("b", {}, "🗺 내 지도"), "(구조 + 내가 적은 키워드). 2회독·시험 직전에 여기서 훑어요."),
+    h("div", { class: "row" }, sel, q)), list);
+  const paint = () => {
+    notesFilter = { part: sel.value, q: q.value.trim() };
+    const qq = notesFilter.q.toLowerCase();
+    list.innerHTML = "";
+    let shown = 0;
+    for (const b of BLOCKS) {
+      if (notesFilter.part && b.part !== notesFilter.part) continue;
+      const d = S.blocks[b.id] || {}; const sm = note("summary:" + b.id), pv = note("preview:" + b.id);
+      if (!d.outline && !(sm && sm.text) && !(pv && pv.text)) continue;
+      const hay = [b.title, d.outline, JSON.stringify(d.kw || {}), sm && sm.text, pv && pv.text].join(" ").toLowerCase();
+      if (qq && !hay.includes(qq)) continue;
+      shown++;
+      const sec = (title, el, open) => { const x = h("details", { class: "guide" }, h("summary", {}, title), el); x.open = !!open; return x; };
+      const det = h("details", { class: "card" });
+      det.append(h("summary", { style: "cursor:pointer" },
+        h("b", {}, `${b.id} `), b.title, h("span", { class: "small muted" }, `  · ${fmtDate(b.date)} · 이론편 p.${b.pages}`), " ",
+        sm && sm.text ? h("span", { class: "chip ok" }, "🧾 총정리") : null, pv && pv.text ? h("span", { class: "chip" }, "🧭 길잡이") : null,
+        d.outline ? h("span", { class: "chip gray" }, `🗺 ${parseOutline(d.outline).length}칸`) : null));
+      const inner = h("div", { style: "margin-top:8px" });
+      if (sm && sm.text) inner.append(sec("🧾 총정리", aiDiv(sm.text), true));
+      if (pv && pv.text) inner.append(sec("🧭 읽기 전 길잡이", aiDiv(pv.text), !(sm && sm.text)));
+      if (d.outline) inner.append(sec("🗺 내 지도 · 키워드", mapView(d), false));
+      inner.append(h("div", { class: "row", style: "margin-top:8px" },
+        h("button", { class: "btn ghost small", onclick: () => { studyId = b.id; studyStep = 2; timerSet(2); go("study"); } }, "이 블록 인출하러 가기"),
+        h("button", { class: "btn ghost small", onclick: () => { studyId = b.id; studyStep = 1; timerSet(1); go("study"); } }, "② 읽기로 가기")));
+      det.append(inner);
+      if (qq) det.open = true;
+      list.append(det);
+    }
+    if (!shown) list.append(h("div", { class: "card muted" }, qq ? "찾는 말이 들어간 정리가 없어요." : "아직 저장된 정리가 없어요. 블록을 공부하면 여기에 모여요."));
+    // 아침 정리
+    const mk = Object.keys(S.notes || {}).filter(k => k.startsWith("morning:") && S.notes[k].text).sort().reverse();
+    if (mk.length && !notesFilter.part) {
+      const c = h("details", { class: "card" }, h("summary", { style: "cursor:pointer" }, h("b", {}, "☀️ 아침 복습 AI 정리"), h("span", { class: "small muted" }, `  ${mk.length}개`)));
+      let mn = 0;
+      for (const k of mk) { if (qq && !S.notes[k].text.toLowerCase().includes(qq)) continue; mn++; c.append(h("details", { class: "guide" }, h("summary", {}, fmtDate(k.slice(8)) + " 블록"), aiDiv(S.notes[k].text))); }
+      if (mn) list.append(c);
+    }
+  };
+  sel.addEventListener("change", paint);
+  let t; q.addEventListener("input", () => { clearTimeout(t); t = setTimeout(paint, 200); });
+  paint();
 }
 
 // ───────── 오늘 ─────────
@@ -2042,7 +2113,7 @@ async function doSync() {
 }
 // 공부 화면(입력 중인 답이 있을 수 있음)에서는 화면을 다시 그리지 않아요
 function rerenderIfIdle() {
-  if (!["today", "glossary", "pairs", "records", "help"].includes(view)) return;
+  if (!["today", "notes", "glossary", "pairs", "records", "help"].includes(view)) return;
   const a = document.activeElement; if (a && ["INPUT", "TEXTAREA", "SELECT"].includes(a.tagName)) return;
   render();
 }
