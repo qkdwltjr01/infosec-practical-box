@@ -404,6 +404,43 @@ body.drawer-on .fab { display: none; }
   .chips-ed, .kw-add { margin-left: 0; }
   .kw-node { margin-left: calc(var(--d) * 10px); }
 }
+.drawer-card { display: flex; flex-direction: column; }
+.drawer-ic { width: 32px; height: 32px; border-radius: 10px; background: var(--accent-wash); display: grid; place-items: center; font-size: 16px; }
+.ask { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.ask-head { margin-bottom: 10px; }
+.ask-where { display: inline-flex; align-items: center; max-width: 100%; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ask-where:hover { border-color: var(--accent); }
+.ask-where-sel { width: 100%; margin-top: 8px; }
+.ask-convo { flex: 1; }
+.ask-empty { text-align: center; padding: 26px 8px 18px; }
+.ask-empty-ic { font-size: 30px; margin-bottom: 6px; }
+.ask-empty p { margin: 6px 0 14px; }
+.ask-ex { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.chip-btn { border: 1px solid var(--line); background: var(--surface); color: var(--text-2); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.chip-btn:hover { border-color: var(--accent); color: var(--accent); }
+.chat { display: flex; flex-direction: column; gap: 8px; }
+.bub { max-width: 92%; padding: 10px 13px; border-radius: 14px; line-height: 1.65; }
+.bub.me { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; font-size: 14px; white-space: pre-wrap; }
+.bub.ai { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--line-soft); border-bottom-left-radius: 4px; margin: 0; }
+.typing { animation: blink 1.2s infinite; }
+@keyframes blink { 50% { opacity: .35; } }
+.ask-save { margin: 12px 0 4px; padding: 12px; border: 1px dashed var(--accent-line); border-radius: var(--r-md); background: var(--accent-wash); }
+.ask-save-row { display: grid; grid-template-columns: 1fr 1.6fr; gap: 6px; }
+.ask-save-row input { min-width: 0; }
+.ask-list { margin: 14px 0 6px; }
+.ask-list > summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 6px 0; }
+.ask-item { border: 1px solid var(--line-soft); border-radius: 10px; padding: 8px 10px; margin: 6px 0; }
+.ask-item > summary { cursor: pointer; list-style: none; }
+.ask-composer { position: sticky; bottom: 0; background: var(--surface); padding: 10px 0 4px; margin-top: 10px; border-top: 1px solid var(--line-soft); }
+.ask-modes { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
+.ask-modes .mode { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.ask-modes .mode.on { background: var(--accent-wash); border-color: var(--accent); color: var(--accent); }
+.ask-input { display: flex; align-items: flex-end; gap: 6px; border: 1px solid var(--line); border-radius: 14px; padding: 6px 6px 6px 12px; background: var(--surface); }
+.ask-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.ask .ask-input textarea { flex: 1; border: 0; box-shadow: none !important; outline: none; resize: none; min-height: 24px; max-height: 140px; padding: 4px 0; margin: 0; background: transparent; font: inherit; line-height: 1.5; }
+.ask-send { flex: none; width: 36px; height: 36px; border-radius: 10px; border: 0; background: var(--accent); color: var(--accent-ink); font-size: 15px; cursor: pointer; }
+.ask-send:disabled { opacity: .45; cursor: default; }
+.ask-hint { font-size: 11.5px; }
 .ask textarea { min-height: 0; margin-bottom: 8px; }
 .ask select { width: 100%; }
 .ask-step { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px; }
@@ -1121,7 +1158,7 @@ function askDrawer(b, nodes) {
   const fab = h("button", { class: "fab", onclick: () => open() }, "❓ 묻기", h("span", { class: "fab-n" }));
   const paintFab = () => { const n = count(); fab.querySelector(".fab-n").textContent = n ? String(n) : ""; };
   panel.append(backdrop, h("div", { class: "drawer-card" },
-    h("div", { class: "drawer-top" }, h("b", {}, "❓ 모르는 말 묻기"), h("span", { class: "small muted" }, b.id), h("button", { class: "oed-btn", style: "margin-left:auto", title: "닫기 (Esc)", onclick: () => close() }, "×")),
+    h("div", { class: "drawer-top" }, h("span", { class: "drawer-ic" }, "❓"), h("div", {}, h("b", {}, "묻기"), h("div", { class: "small muted" }, b.id + " · 내 지도를 보고 쉽게 설명해요")), h("button", { class: "oed-btn", style: "margin-left:auto", title: "닫기 (Esc)", onclick: () => close() }, "×")),
     inner));
   const onKey = e => { if (e.key === "Escape") close(); };
   function open(path) {
@@ -1222,7 +1259,7 @@ async function aiStream(messages, onText) {
 // 굵게·목록·코드만 그려요 (나머지는 그대로 글자)
 function mdLite(text) {
   const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const inl = s => s.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>");
+  const inl = s => s.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, "$1<i>$2</i>").replace(/`([^`]+)`/g, "<code>$1</code>");
   const BUL = ["•", "◦", "▪", "·"];
   const mentor = (s, lv) => `<div class="md-mentor" style="margin-left:${lv * 1.25}em">${inl(s.replace(/^💡\s*/, "💡 "))}</div>`;
   const out = [];
@@ -1257,10 +1294,11 @@ function aiThread(firstUserMsg, opts) {
   const answers = [];
   const follow = h("div", { class: "row hidden", style: "margin-top:8px" });
   const fin = h("input", { type: "text", placeholder: "더 물어보기 (예: 그럼 NTLM이랑 뭐가 달라?)", style: "flex:1;min-width:180px" });
-  const send = async (text, isFirst) => {
+  const send = async (text, isFirst, shownText) => {
     msgs.push({ role: "user", content: text });
-    if (!isFirst) box.insertBefore(h("div", { class: "ai-q" }, "나: " + text), follow);
-    const out = h("div", { class: "ai-a" }, h("span", { class: "muted small" }, "답을 받는 중…"));
+    if (opts.chat) box.insertBefore(h("div", { class: "bub me" }, isFirst ? (opts.shown || text) : (shownText || text)), follow);
+    else if (!isFirst) box.insertBefore(h("div", { class: "ai-q" }, "나: " + text), follow);
+    const out = h("div", { class: "ai-a" + (opts.chat ? " bub ai" : "") }, h("span", { class: "muted small typing" }, "생각하는 중…"));
     box.insertBefore(out, follow);
     follow.classList.add("hidden");
     try {
@@ -1272,14 +1310,18 @@ function aiThread(firstUserMsg, opts) {
       out.innerHTML = ""; out.append(h("span", { style: "color:var(--bad)" }, "⚠️ " + e.message));
       msgs.pop();
     }
-    follow.classList.remove("hidden"); fin.value = "";
+    if (!opts.chat) follow.classList.remove("hidden"); fin.value = "";
+    if (opts.onDone) opts.onDone();
   };
   const go2 = () => { const v = fin.value.trim(); if (v) send(v, false); };
   fin.addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); go2(); } });
   follow.append(fin, h("button", { class: "btn small", onclick: go2 }, "보내기"));
-  box.append(h("div", { class: "ai-head" }, "🤖 ", AI_MODELS.find(m => m[0] === AI.model) ? AI_MODELS.find(m => m[0] === AI.model)[1].split(" — ")[0] : AI.model), follow);
+  if (opts.chat) box.className = "chat";
+  else box.append(h("div", { class: "ai-head" }, "🤖 ", AI_MODELS.find(m => m[0] === AI.model) ? AI_MODELS.find(m => m[0] === AI.model)[1].split(" — ")[0] : AI.model));
+  box.append(follow);
   send(firstUserMsg, true);
   box.answers = answers;
+  box.ask = (t, shownText) => send(t, false, shownText);
   return box;
 }
 function aiCard() {
@@ -1661,52 +1703,94 @@ function viewAIQuiz(main) {
 }
 
 function askPanel(b, nodes) {
-  let mode = "easy";
-  let thread = null;
+  let mode = "easy", thread = null, lastQ = "";
   const box = h("div", { class: "ask" });
-  const text = h("textarea", { rows: "2", placeholder: "모르는 단어나 이해 안 되는 문장을 그대로 적어요\n예) 커널 모드에서 동작하는 LSA가 SAM과 비교해 인증한다" });
-  const where = h("select", {}, h("option", { value: "" }, "어느 칸에서 나왔나요? (선택)"), nodes.map(n => h("option", { value: n.path }, "　".repeat(n.depth) + (n.mentor ? (n.note ? "📌 " : "💡 ") : "") + n.label)));
-  const seg = h("div", { class: "seg", role: "radiogroup" });
-  const paintSeg = () => { seg.innerHTML = ""; ASK_MODES.forEach(m => seg.append(h("button", { class: m[0] === mode ? "on" : "", role: "radio", "aria-checked": m[0] === mode ? "true" : "false", onclick: () => { mode = m[0]; paintSeg(); } }, m[1]))); };
-  paintSeg();
-  const answerArea = h("div");
-  const mine = h("textarea", { rows: "2", placeholder: "예) LSA = 윈도우 로그인 검사관. 입력한 비밀번호를 SAM에 저장된 것과 대조함" });
-  const mineBox = h("div", { class: "ask-mine" + (aiOn() ? " hidden" : "") },
-    h("div", { class: "ask-step" }, h("span", { class: "ask-num" }, "2"), h("b", {}, "내 말로 정리"), h("span", { class: "small muted" }, " 답을 보지 말고 한두 줄")),
-    mine,
-    h("div", { class: "row", style: "margin-top:8px" }, h("button", { class: "btn", onclick: () => {
-      if (!text.value.trim()) { alertBox("모르는 단어나 문장 칸이 비어 있어요."); return; }
-      if (!mine.value.trim() && !confirm("\"내 말로 정리\"가 비어 있어요. 그래도 저장할까요? (인출·퀴즈에서 비교할 게 없어요)")) return;
-      const term = text.value.trim().length > 40 ? text.value.trim().slice(0, 40) + "…" : text.value.trim();
-      const ai = thread && thread.answers.length ? thread.answers.join("\n\n") : "";
-      S.glossary.push({ id: newId(), u: Date.now(), term, full: text.value.trim(), mine: mine.value.trim(), ai, block: b.id, path: where.value, date: todayStr(), known: 0, unknown: 0 });
-      save(); text.value = ""; mine.value = ""; answerArea.innerHTML = ""; thread = null; if (aiOn()) mineBox.classList.add("hidden"); paintList();
-      alertBox("어휘장에 저장했어요" + (ai ? " (AI 설명도 같이)" : "") + ". 인출·아침 복습·저녁 퀴즈에서 다시 나와요.");
-      if (box.onSaved) box.onSaved();
-    } }, "어휘장에 저장"), h("button", { class: "btn ghost small", onclick: () => { mine.value = ""; } }, "지우기")));
-  const list = h("details", { class: "guide", style: "margin-top:14px" });
-  const paintList = () => { list.innerHTML = ""; const g = glossaryOf(b.id); list.append(h("summary", {}, `이 블록 어휘장 (${g.length}개)`)); if (g.length) list.append(glossaryList(g.slice().reverse(), false)); else list.append(h("p", { class: "small muted" }, "아직 없어요.")); };
-  const need = () => { if (!text.value.trim()) { alertBox("모르는 단어나 문장을 먼저 적어 주세요."); text.focus(); return false; } return true; };
-  const ask = () => {
-    if (!need()) return;
-    answerArea.innerHTML = "";
-    thread = aiThread(makePrompt(b, where.value, text.value.trim(), mode), { onAnswer: () => mineBox.classList.remove("hidden") });
-    answerArea.append(thread);
+  const MODE_ICON = { easy: "🙂", analogy: "🧸", why: "⚠️", diff: "⚖️" };
+  const cellName = p => { const n = nodes.find(x => x.path === p); return n ? n.label.replace(/^(보안\s*멘토|주석)\s*:?\s*/, (m) => /주석/.test(m) ? "📌 " : "💡 ") : ""; };
+  // 어느 칸인지: 칩으로 보여 주고, 누르면 고르기
+  const where = h("select", { class: "ask-where-sel hidden" }, h("option", { value: "" }, "칸을 고르지 않음 (블록 전체)"), nodes.map(n => h("option", { value: n.path }, "　".repeat(n.depth) + (n.mentor ? (n.note ? "📌 " : "💡 ") : "") + n.label.replace(/^(보안\s*멘토|주석)\s*:?\s*/, ""))));
+  const whereChip = h("button", { class: "ask-where", title: "어느 칸에서 나온 말인지 바꾸기", onclick: () => { where.classList.toggle("hidden"); if (!where.classList.contains("hidden")) where.focus(); } });
+  const paintWhere = () => { whereChip.innerHTML = ""; whereChip.append("📍 ", where.value ? cellName(where.value) : b.id + " 블록 전체", h("span", { class: "muted" }, "  ▾")); paintEmpty(); };
+  where.addEventListener("change", () => { where.classList.add("hidden"); paintWhere(); });
+  // 대화 영역
+  const convo = h("div", { class: "ask-convo" });
+  const empty = h("div", { class: "ask-empty" });
+  const paintEmpty = () => {
+    empty.innerHTML = "";
+    const nm = where.value ? cellName(where.value).replace(/^[💡📌]\s*/, "").replace(/^(\d+\.|\(\d+\)|\d+\)|\([가-하]\)|[①-⑳])\s*/, "") : "";
+    const ex = nm ? ["「" + nm + "」 쉽게 설명해 줘", "「" + nm + "」 왜 필요해?", "책에 나온 문장을 그대로 붙여 넣어도 돼요"] : ["SAM이 뭐야?", "SAM이랑 SRM은 뭐가 달라?", "책에 나온 문장을 그대로 붙여 넣어도 돼요"];
+    empty.append(h("div", { class: "ask-empty-ic" }, "💬"), h("b", {}, "읽다가 막힌 단어나 문장을 물어보세요"),
+      h("p", { class: "small muted" }, "내 지도(제목·보안멘토·주석·키워드)를 보고 내 수준에 맞춰 설명해 줘요."),
+      h("div", { class: "ask-ex" }, ex.map(t => h("button", { class: "chip-btn", onclick: () => { if (/붙여 넣어도/.test(t)) { text.focus(); return; } text.value = t; text.focus(); autoGrow(); } }, t))));
   };
-  text.addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); aiOn() ? ask() : null; } });
-  const actions = aiOn()
-    ? h("div", { class: "row" }, h("button", { class: "btn", onclick: ask }, "물어보기"), h("span", { class: "small muted" }, "Ctrl+Enter"),
-        h("button", { class: "btn ghost small", style: "margin-left:auto", onclick: () => { if (need()) copyText(makePrompt(b, where.value, text.value.trim(), mode), "질문을 복사했어요."); } }, "질문만 복사"))
-    : h("div", {},
-        h("div", { class: "row" }, h("button", { class: "btn", onclick: () => { if (need()) copyText(makePrompt(b, where.value, text.value.trim(), mode), "질문을 복사했어요. Claude Code나 휴대폰 Claude 앱에 붙여 넣으세요."); } }, "질문 복사")),
-        h("p", { class: "small muted", style: "margin-top:6px" }, "기록·백업 탭에서 OpenRouter 키를 넣으면 여기서 바로 답이 나와요."));
-  box.append(
-    h("div", { class: "ask-step" }, h("span", { class: "ask-num" }, "1"), h("b", {}, "묻기")),
-    text, where, h("div", { class: "small muted", style: "margin:8px 0 4px" }, "질문 방식"), seg, actions, answerArea,
-    mineBox, list);
-  box.setWhere = p => { where.value = p; };
+  convo.append(empty);
+  // 저장 줄 (답이 나오면)
+  const termIn = h("input", { type: "text", placeholder: "용어 (예: LSA)" });
+  const mine = h("input", { type: "text", placeholder: "내 말로 한 줄 (선택) 예) 로그인 검사관" });
+  const saveBar = h("div", { class: "ask-save hidden" },
+    h("div", { class: "small", style: "font-weight:700;margin-bottom:6px" }, "📘 어휘장에 저장"),
+    h("div", { class: "ask-save-row" }, termIn, mine),
+    h("div", { class: "row", style: "margin-top:8px" },
+      h("button", { class: "btn small", onclick: () => {
+        const term = termIn.value.trim() || (lastQ.length > 40 ? lastQ.slice(0, 40) + "…" : lastQ);
+        if (!term) { alertBox("용어를 적어 주세요."); termIn.focus(); return; }
+        const ai = thread && thread.answers.length ? thread.answers.join("\n\n") : "";
+        if (!ai && !mine.value.trim() && !confirm("AI 답도, 내 말 정리도 없어요. 그래도 저장할까요?")) return;
+        S.glossary.push({ id: newId(), u: Date.now(), term, full: lastQ, mine: mine.value.trim(), ai, block: b.id, path: where.value, date: todayStr(), known: 0, unknown: 0 });
+        save(); paintList(); saveBar.classList.add("hidden");
+        alertBox("어휘장에 저장했어요" + (ai ? " (AI 설명도 같이)" : "") + ". 인출·아침 복습·저녁 퀴즈에서 다시 나와요.");
+        if (box.onSaved) box.onSaved();
+      } }, "저장"),
+      h("span", { class: "small muted" }, "인출·퀴즈에서 다시 나와요")));
+  // 입력창 (아래 고정)
+  const text = h("textarea", { rows: "1", placeholder: "모르는 단어나 문장을 적어요…" });
+  const autoGrow = () => { text.style.height = "auto"; text.style.height = Math.min(text.scrollHeight, 140) + "px"; };
+  text.addEventListener("input", autoGrow);
+  const modes = h("div", { class: "ask-modes" });
+  const paintModes = () => { modes.innerHTML = ""; ASK_MODES.forEach(m => modes.append(h("button", { class: "mode" + (m[0] === mode ? " on" : ""), "aria-pressed": m[0] === mode ? "true" : "false", onclick: () => { mode = m[0]; paintModes(); text.focus(); } }, MODE_ICON[m[0]] + " " + m[1]))); };
+  paintModes();
+  const sendBtn = h("button", { class: "ask-send", title: aiOn() ? "보내기 (Enter)" : "질문 복사", onclick: () => submit() }, aiOn() ? "➤" : "📋");
+  const newBtn = h("button", { class: "btn ghost small hidden", onclick: () => reset() }, "＋ 새 질문");
+  const hint = h("div", { class: "small muted ask-hint" }, aiOn() ? "Enter 보내기 · Shift+Enter 줄바꿈" : "OpenRouter 키가 없어서 질문을 복사해요. Claude 앱에 붙여 넣으세요 (키는 기록·백업 탭)");
+  const composer = h("div", { class: "ask-composer" }, modes, h("div", { class: "ask-input" }, text, sendBtn), h("div", { class: "row", style: "justify-content:space-between;margin-top:4px" }, hint, newBtn));
+  const busy = on => { sendBtn.disabled = on; text.disabled = on; };
+  function submit() {
+    const q = text.value.trim();
+    if (!q) { text.focus(); return; }
+    if (!aiOn()) { copyText(makePrompt(b, where.value, q, mode), "질문을 복사했어요. Claude 앱에 붙여 넣으세요."); return; }
+    const m = ASK_MODES.find(x => x[0] === mode);
+    text.value = ""; autoGrow(); busy(true);
+    if (!thread) {
+      lastQ = q; empty.remove();
+      thread = aiThread(makePrompt(b, where.value, q, mode), { chat: true, shown: q + (mode !== "easy" ? "  · " + m[1] : ""), onAnswer: () => { saveBar.classList.remove("hidden"); if (!termIn.value) termIn.value = q.length <= 30 ? q.replace(/[?？]\s*$/, "").replace(/(이|가)?\s*(뭐야|뭐예요|무슨 뜻이야|뭐지)$/, "").trim() : ""; }, onDone: () => { busy(false); text.focus(); const last = [...box.querySelectorAll(".bub.ai")].pop(); if (last) last.scrollIntoView({ block: "nearest" }); } });
+      convo.append(thread, saveBar); newBtn.classList.remove("hidden");
+      text.placeholder = "이어서 물어보기…";
+    } else {
+      thread.ask(mode !== "easy" ? q + "\n(" + m[2] + ")" : q, q + (mode !== "easy" ? "  · " + m[1] : ""));
+    }
+  }
+  function reset() { thread = null; lastQ = ""; convo.innerHTML = ""; paintEmpty(); convo.append(empty); saveBar.classList.add("hidden"); termIn.value = ""; mine.value = ""; newBtn.classList.add("hidden"); text.placeholder = "모르는 단어나 문장을 적어요…"; text.focus(); }
+  text.addEventListener("keydown", e => {
+    if (e.isComposing || e.keyCode === 229) return;
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
+  });
+  // 이 블록에서 물어본 말
+  const list = h("details", { class: "ask-list" });
+  const paintList = () => {
+    list.innerHTML = ""; const g = glossaryOf(b.id).slice().reverse();
+    list.append(h("summary", {}, "📘 이 블록에서 저장한 말 ", h("span", { class: "chip gray" }, String(g.length))));
+    if (!g.length) { list.append(h("p", { class: "small muted" }, "아직 없어요. 답을 받은 뒤 \"저장\"을 누르면 여기와 어휘장에 쌓여요.")); return; }
+    for (const x of g) {
+      const d = h("details", { class: "ask-item" }, h("summary", {}, h("b", {}, x.term), x.src === "ai" ? h("span", { class: "chip gray", style: "margin-left:6px" }, "AI") : null,
+        h("div", { class: "small muted" }, x.mine || x.short || "")));
+      if (x.ai || x.explain) { const a = h("div", { class: "ai-a", style: "margin-top:6px" }); a.innerHTML = mdLite(x.ai || x.explain); d.append(a); }
+      list.append(d);
+    }
+  };
+  box.append(h("div", { class: "ask-head" }, whereChip, where), convo, list, composer);
+  box.setWhere = p => { where.value = p; where.classList.add("hidden"); paintWhere(); };
   box.focusText = () => text.focus();
-  paintList();
+  paintWhere(); paintList();
   return box;
 }
 
