@@ -1068,7 +1068,9 @@ const ASK_MODES = [
 ];
 function makePrompt(b, path, text, mode) {
   const m = ASK_MODES.find(x => x[0] === mode) || ASK_MODES[0];
-  const ctx = typeof blockContext === "function" ? blockContext([b.id]) : "";
+  let ctx = typeof blockContext === "function" ? blockContext([b.id]) : "";
+  const secM = ctx && typeof sectionMentors === "function" ? sectionMentors(b) : "";
+  if (secM) ctx += "\n[같은 섹션의 보안멘토 (다른 블록에서 적음, 이 섹션 전체에 걸린 설명)]\n" + secM;
   return (ctx ? "아래는 내가 이 블록을 읽으며 만든 지도야. 설명할 때 이 흐름(상위 제목, 보안멘토, 주석, 내가 적은 키워드)에 맞춰서, 내가 적은 말과 이어지게 설명해 줘. 내가 적은 키워드가 틀렸으면 짚어 줘.\n\n" + ctx + "\n\n---\n\n" : "") + `정보보안기사 실기 공부 중이야. 알기사 실기 교재 「${b.title}」${path ? ` > ${path}` : ""} 부분을 읽다가 아래가 이해가 안 돼.\n\n"${text}"\n\n${m[2]}\n조건: 어려운 용어는 괄호 안에 쉬운 말로 풀어 주고, 6~8줄 이내로. 마지막 줄에 시험용 핵심 키워드 2~3개를 써 줘.`;
 }
 function copyText(txt, msg) {
@@ -1342,10 +1344,27 @@ ${pairs || "없음"}
   return card;
 }
 
+// 같은 섹션(S01, S02 …)의 다른 블록에 적은 보안멘토. 보안멘토는 섹션 전체에 걸린 설명이라 다른 블록에서도 참고해요.
+function sectionMentors(b) {
+  const secs = (b.title.match(/S\d\d/g) || []);
+  if (!secs.length) return "";
+  const out = [];
+  for (const o of BLOCKS) {
+    if (o.id === b.id || !secs.some(s => o.title.includes(s))) continue;
+    const d = S.blocks[o.id]; if (!d || !d.outline) continue;
+    for (const n of parseOutline(d.outline)) {
+      if (!n.mentor || n.note) continue;
+      const kws = kwList(d.kw[n.path]).map(k => k.replace(/\|/g, "/"));
+      out.push(`- [${o.id} · ${o.title.replace(/^★\s*/, "")}] ${n.path}${kws.length ? " :: " + kws.join(", ") : ""}`);
+    }
+  }
+  return out.join("\n");
+}
 // 읽기 전 길잡이: 구조(제목·보안멘토·주석)만 보고 쉬운 말로 큰 그림을 먼저 잡아 줘요
 function previewCard(b) {
   const d = blk(b.id);
-  const sig = hashStr(d.outline);
+  const secM = sectionMentors(b);
+  const sig = hashStr(d.outline + "|" + secM);
   const key = "preview:" + b.id;
   const saved = note(key);
   const box = h("details", { class: "card preview-card" });
@@ -1363,20 +1382,24 @@ function previewCard(b) {
 "보안멘토:"는 교재에서 섹션이 시작할 때 나오는 설명 박스, "주석:"은 본문 오른쪽 여백의 짧은 설명이야.
 
 ${outline}
-
+${secM ? `
+[같은 섹션의 보안멘토] 보안멘토는 섹션 전체에 걸린 설명이라, 다른 블록에서 적었어도 이 블록에 해당하는 내용이 있을 수 있어. (:: 뒤는 학생이 적은 키워드)
+${secM}
+이 중 이 블록 제목과 관련 있는 것은 길잡이에서 "섹션 보안멘토와 연결"해서 설명해 줘. 관련 없는 건 언급하지 마.
+` : ""}
 읽기 전에 3분 안에 읽을 "길잡이"를 써 줘. 학생은 어휘력이 약하고 이 단원을 처음 공부해. 목표는 본문을 읽을 때 "아 이게 그 얘기구나" 하고 바로 이해되게 하는 거야.
 형식 (굵게와 목록만, 전체 25줄 안팎):
 **한눈에 보기** — 이 블록이 무엇에 관한 이야기인지 2 ~ 3줄. 일상 비유 하나.
-**제목별 미리보기** — 지도의 제목 흐름대로, 가장 작은 제목·보안멘토·주석마다 1줄씩 "이게 뭐고 왜 나오는지"를 쉬운 말로. 큰 제목은 묶어서 짧게.
+**제목별 미리보기** — 지도의 제목 흐름대로, 가장 작은 제목·보안멘토·주석마다 1줄씩 "이게 뭐고 왜 나오는지"를 쉬운 말로. 큰 제목은 묶어서 짧게. 섹션 보안멘토가 짚은 포인트가 이 제목에 해당하면 그 줄에 "💡 섹션 보안멘토: …"로 이어 줘.
 **먼저 알아둘 말** — 본문에 나올 어려운 용어 4 ~ 6개, 각각 "용어 = 쉬운 뜻" 한 줄.
 **읽으면서 찾을 것** — 실기(단답·서술·실무)에 잘 나오는 포인트를 질문 3개로 (답은 쓰지 마).
 지도에 없는 세부 내용·숫자·명령어 옵션은 지어내지 말고, 확실하지 않으면 "본문에서 확인"이라고 써.` }], t => { body.innerHTML = mdLite(t); });
       setNote(key, { sig, text: full });
-      when.textContent = "방금 만듦"; if (btn) btn.textContent = "다시 만들기";
+      when.textContent = secM ? "방금 만듦 · 같은 섹션 보안멘토도 참고" : "방금 만듦"; if (btn) btn.textContent = "다시 만들기";
     } catch (e) { body.innerHTML = ""; body.append(h("span", { style: "color:var(--bad)" }, "⚠️ " + e.message)); }
   };
   const btn = aiOn() ? h("button", { class: "btn ghost small", onclick: run }, saved ? "다시 만들기" : "만들기") : null;
-  when.textContent = saved ? (saved.sig === sig ? "" : "구조가 바뀌었어요 · 다시 만들 수 있어요") : "";
+  when.textContent = saved ? (saved.sig === sig ? (secM ? "같은 섹션 보안멘토도 참고했어요" : "") : "구조나 섹션 보안멘토가 바뀌었어요 · 다시 만들 수 있어요") : "";
   box.append(h("summary", {}, h("b", {}, "🧭 읽기 전 길잡이"), h("span", { class: "small muted" }, "  내 지도를 보고 AI가 쉽게 큰 그림을 잡아 줘요 (3분)")),
     h("div", { class: "row", style: "justify-content:space-between;margin-top:6px" }, when, btn),
     body,
