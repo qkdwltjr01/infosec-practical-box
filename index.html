@@ -318,6 +318,11 @@ tr:last-child td { border-bottom: 0; }
 .tree .node.note > .label { color: var(--accent); }
 .kw-node.mentor.note { border-color: var(--accent-line); background: var(--accent-wash); }
 .kw-node.mentor.note .kw-name { color: var(--accent); }
+.preview-card > summary { cursor: pointer; list-style: none; }
+.preview-card > summary::-webkit-details-marker { display: none; }
+.preview-card > summary::before { content: "▸ "; color: var(--text-2); }
+.preview-card[open] > summary::before { content: "▾ "; }
+.preview-card { border-color: var(--accent-line); }
 .oed-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 12px; padding: 10px; border: 1px dashed var(--line); border-radius: var(--r-md); }
 input[type=number] { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
 @media (max-width: 640px) {
@@ -919,7 +924,7 @@ function stepStructure(area, b) {
       h("button", { class: "btn ghost small", onclick: () => { ta.value = data.outline; } }, "지금 지도를 글로 보기")));
 
   area.append(h("div", { class: "row", style: "justify-content:space-between;margin-bottom:6px" }, h("b", {}, "지도"), count), ed, bar, startsBox, pasteBox,
-    h("div", { class: "row", style: "margin-top:12px" }, h("button", { class: "btn", onclick: () => { studyStep = 1; timerSet(1); render(); } }, "다음: ② 읽기 →")));
+    h("div", { class: "row", style: "margin-top:12px" }, h("button", { class: "btn", onclick: () => { studyStep = 1; timerSet(1); render(); } }, "다음: 🧭 길잡이 · ② 읽기 →")));
   paint();
 }
 
@@ -967,6 +972,7 @@ function stepRead(area, b) {
     area.append(h("div", { class: "oed-empty" }, "아직 지도가 없어요. ① 구조에서 제목을 먼저 넣어 주세요."), drawer.fab, drawer.panel);
     return;
   }
+  area.append(previewCard(b));
   // 키워드를 적을 칸: 가장 작은 제목(아래에 하위 칸이 없는 칸)과 보안멘토·주석
   // 보안멘토는 하위 칸으로 치지 않아요 (보안멘토만 달린 칸도 키워드를 적는 칸)
   const leaf = nodes.map((n, i) => { if (n.mentor) return true; for (let j = i + 1; j < nodes.length && nodes[j].depth > n.depth; j++) if (!nodes[j].mentor) return false; return true; });
@@ -1334,6 +1340,51 @@ ${pairs || "없음"}
   else if (aiOn() && ids.some(id => S.blocks[id] && S.blocks[id].outline)) setTimeout(run, 0);   // 처음 열면 알아서 만들어요
   else if (aiOn()) body.innerHTML = "<span class=\"muted small\">이 범위에는 아직 지도가 없어요.</span>";
   return card;
+}
+
+// 읽기 전 길잡이: 구조(제목·보안멘토·주석)만 보고 쉬운 말로 큰 그림을 먼저 잡아 줘요
+function previewCard(b) {
+  const d = blk(b.id);
+  const sig = hashStr(d.outline);
+  const key = "preview:" + b.id;
+  const saved = note(key);
+  const box = h("details", { class: "card preview-card" });
+  let open = true; try { open = localStorage.getItem("infosec-preview-fold") !== "1"; } catch (e) {}
+  box.open = open;
+  box.addEventListener("toggle", () => { try { localStorage.setItem("infosec-preview-fold", box.open ? "0" : "1"); } catch (e) {} });
+  const body = h("div", { class: "ai-a" });
+  const when = h("span", { class: "small muted" });
+  const run = async () => {
+    body.innerHTML = "<span class=\"muted small\">🤖 지도를 보고 길잡이를 만드는 중…</span>";
+    const outline = parseOutline(d.outline).map(n => "  ".repeat(n.depth) + "- " + n.label).join("\n");
+    try {
+      const full = await aiStream([{ role: "system", content: AI_SYSTEM }, { role: "user", content:
+`학생이 교재 「${b.title}」(이론편 p.${b.pages}, ${b.pn}쪽)를 읽기 직전이야. 아래는 학생이 본문은 안 읽고 제목만 훑어서 만든 지도야.
+"보안멘토:"는 교재에서 섹션이 시작할 때 나오는 설명 박스, "주석:"은 본문 오른쪽 여백의 짧은 설명이야.
+
+${outline}
+
+읽기 전에 3분 안에 읽을 "길잡이"를 써 줘. 학생은 어휘력이 약하고 이 단원을 처음 공부해. 목표는 본문을 읽을 때 "아 이게 그 얘기구나" 하고 바로 이해되게 하는 거야.
+형식 (굵게와 목록만, 전체 25줄 안팎):
+**한눈에 보기** — 이 블록이 무엇에 관한 이야기인지 2 ~ 3줄. 일상 비유 하나.
+**제목별 미리보기** — 지도의 제목 흐름대로, 가장 작은 제목·보안멘토·주석마다 1줄씩 "이게 뭐고 왜 나오는지"를 쉬운 말로. 큰 제목은 묶어서 짧게.
+**먼저 알아둘 말** — 본문에 나올 어려운 용어 4 ~ 6개, 각각 "용어 = 쉬운 뜻" 한 줄.
+**읽으면서 찾을 것** — 실기(단답·서술·실무)에 잘 나오는 포인트를 질문 3개로 (답은 쓰지 마).
+지도에 없는 세부 내용·숫자·명령어 옵션은 지어내지 말고, 확실하지 않으면 "본문에서 확인"이라고 써.` }], t => { body.innerHTML = mdLite(t); });
+      setNote(key, { sig, text: full });
+      when.textContent = "방금 만듦"; if (btn) btn.textContent = "다시 만들기";
+    } catch (e) { body.innerHTML = ""; body.append(h("span", { style: "color:var(--bad)" }, "⚠️ " + e.message)); }
+  };
+  const btn = aiOn() ? h("button", { class: "btn ghost small", onclick: run }, saved ? "다시 만들기" : "만들기") : null;
+  when.textContent = saved ? (saved.sig === sig ? "" : "구조가 바뀌었어요 · 다시 만들 수 있어요") : "";
+  box.append(h("summary", {}, h("b", {}, "🧭 읽기 전 길잡이"), h("span", { class: "small muted" }, "  내 지도를 보고 AI가 쉽게 큰 그림을 잡아 줘요 (3분)")),
+    h("div", { class: "row", style: "justify-content:space-between;margin-top:6px" }, when, btn),
+    body,
+    h("p", { class: "small muted", style: "margin-top:8px" }, "길잡이는 제목만 보고 만든 거라 교재와 다를 수 있어요. 본문이 기준이에요. 읽다가 막히면 그 칸의 ❓로 물어봐요."));
+  if (!aiOn()) body.append(h("span", { class: "small muted" }, "기록·백업 탭에서 OpenRouter 키를 넣으면, 읽기 전에 AI가 이 블록의 큰 그림을 쉽게 설명해 줘요."));
+  else if (saved && saved.text) body.innerHTML = mdLite(saved.text);
+  else setTimeout(run, 0);   // 처음 들어오면 알아서 만들어요
+  return box;
 }
 
 // 저녁 퀴즈: AI가 실기형 문제를 만들고 채점까지
