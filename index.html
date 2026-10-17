@@ -1062,7 +1062,8 @@ const ASK_MODES = [
 ];
 function makePrompt(b, path, text, mode) {
   const m = ASK_MODES.find(x => x[0] === mode) || ASK_MODES[0];
-  return `정보보안기사 실기 공부 중이야. 알기사 실기 교재 「${b.title}」${path ? ` > ${path}` : ""} 부분을 읽다가 아래가 이해가 안 돼.\n\n"${text}"\n\n${m[2]}\n조건: 어려운 용어는 괄호 안에 쉬운 말로 풀어 주고, 6~8줄 이내로. 마지막 줄에 시험용 핵심 키워드 2~3개를 써 줘.`;
+  const ctx = typeof blockContext === "function" ? blockContext([b.id]) : "";
+  return (ctx ? "아래는 내가 이 블록을 읽으며 만든 지도야. 설명할 때 이 흐름(상위 제목, 보안멘토, 주석, 내가 적은 키워드)에 맞춰서, 내가 적은 말과 이어지게 설명해 줘. 내가 적은 키워드가 틀렸으면 짚어 줘.\n\n" + ctx + "\n\n---\n\n" : "") + `정보보안기사 실기 공부 중이야. 알기사 실기 교재 「${b.title}」${path ? ` > ${path}` : ""} 부분을 읽다가 아래가 이해가 안 돼.\n\n"${text}"\n\n${m[2]}\n조건: 어려운 용어는 괄호 안에 쉬운 말로 풀어 주고, 6~8줄 이내로. 마지막 줄에 시험용 핵심 키워드 2~3개를 써 줘.`;
 }
 function copyText(txt, msg) {
   (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(
@@ -1227,6 +1228,7 @@ function blockContext(ids, withMiss) {
   const out = [];
   for (const id of ids) {
     const b = BLOCK[id], d = S.blocks[id]; if (!d || !d.outline) continue;
+    if (!out.length) out.push("(지도 읽는 법: 들여쓰기 = 교재 제목 단계, \"제목 :: 키워드\" = 내가 읽고 적은 키워드, \"보안멘토:\" = 교재에서 섹션이 시작할 때 나오는 설명 박스, \"주석:\" = 본문 오른쪽 여백의 짧은 설명)");
     out.push(`### ${b.id} ${b.title} (이론편 p.${b.pages})`);
     for (const n of parseOutline(d.outline)) {
       const kws = kwList(d.kw[n.path]).map(k => k.replace(/\|/g, "/"));
@@ -1571,7 +1573,7 @@ function paintResult(blockId, g, tree, result) {
       : h("p", {}, "🎉 빠진 칸이 없어요."),
     fb,
     h("div", { class: "row" },
-      aiOn() && misses.length ? h("button", { class: "btn", onclick: e => { e.target.disabled = true; fb.append(aiThread(resultText(blockId, g) + "\n\n위 결과를 보고, 빠진 키워드가 무슨 뜻인지와 내가 섞어 쓴 개념의 차이를 칸마다 2 ~ 3줄로 쉽게 설명해 줘. 내가 쓴 답 중 틀린 내용이 있으면 짚어 줘.")); } }, "🤖 틀린 칸 AI 설명") : null,
+      aiOn() && misses.length ? h("button", { class: "btn", onclick: e => { e.target.disabled = true; fb.append(aiThread(blockContext([blockId]) + "\n\n---\n\n" + resultText(blockId, g) + "\n\n위 지도와 결과를 보고, 빠진 키워드가 무슨 뜻인지와 내가 섞어 쓴 개념의 차이를 칸마다 2 ~ 3줄로 쉽게 설명해 줘. 내가 쓴 답 중 틀린 내용이 있으면 짚어 줘.")); } }, "🤖 틀린 칸 AI 설명") : null,
       h("button", { class: "btn ghost", onclick: () => copyResult(blockId, g) }, "결과 복사"),
       h("button", { class: "btn ghost", onclick: () => { go("pairs"); } }, "헷갈리는 쌍 등록하러 가기"))));
 }
