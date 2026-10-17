@@ -323,6 +323,7 @@ tr:last-child td { border-bottom: 0; }
 .preview-card > summary::before { content: "▸ "; color: var(--text-2); }
 .preview-card[open] > summary::before { content: "▾ "; }
 .preview-card { border-color: var(--accent-line); }
+.summary-card { border-color: var(--ok-line, var(--accent-line)); }
 .oed-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 12px; padding: 10px; border: 1px dashed var(--line); border-radius: var(--r-md); }
 input[type=number] { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
 @media (max-width: 640px) {
@@ -1390,6 +1391,51 @@ function sectionMentors(b) {
   }
   return out.join("\n");
 }
+// 인출 뒤 총정리: 내 지도·키워드·방금 틀린 칸을 보고 AI가 블록 전체를 문장으로 정리해 줘요
+function summaryCard(blockId, g) {
+  const b = BLOCK[blockId], d = blk(blockId);
+  const secM = sectionMentors(b);
+  const sig = hashStr(d.outline + JSON.stringify(d.kw) + "|" + secM);
+  const key = "summary:" + blockId;
+  const saved = note(key);
+  const box = h("div", { class: "card summary-card", style: "margin:12px 0 0" });
+  const body = h("div", { class: "ai-a" });
+  const when = h("span", { class: "small muted" });
+  const misses = (g ? g.results : []).filter(x => x.hits < x.total || x.misplaced.length)
+    .map(x => `- ${x.node.path}: 내가 쓴 답 "${x.text || "(비움)"}", 빠진 키워드 ${x.kwRes.filter(k => !k.hit).map(k => k.kw).join(", ") || "없음"}${x.misplaced.length ? ", 다른 칸 키워드 섞임 " + x.misplaced.map(m => m.tok + "→" + m.where).join(", ") : ""}`).join("\n");
+  const run = async () => {
+    body.innerHTML = "<span class=\"muted small\">🤖 내 키워드를 보고 이 블록을 정리하는 중…</span>";
+    try {
+      const full = await aiStream([{ role: "system", content: AI_SYSTEM }, { role: "user", content:
+`학생이 교재 「${b.title}」(이론편 p.${b.pages})를 읽고 만든 지도와 키워드, 그리고 방금 책을 덮고 인출한 결과야.
+
+${blockContext([blockId], true)}
+${secM ? "\n[같은 섹션의 보안멘토 (다른 블록에서 적음, 섹션 전체에 걸린 설명)]\n" + secM + "\n" : ""}
+[방금 인출에서 틀린 칸]
+${misses || "없음 (다 맞음)"}
+
+이 블록의 "총정리"를 써 줘. 학생은 어휘력이 약하니 쉬운 말로, 학생이 적은 키워드를 살려서 써.
+형식 (굵게와 목록만):
+**한 줄 요약** — 이 블록 전체를 1 ~ 2줄로.
+**제목별 정리** — 지도의 들여쓰기를 그대로 살린 중첩 목록 (단계마다 공백 2칸 들여쓰고 "- "로 시작, 큰 제목도 한 줄씩). 가장 작은 제목·보안멘토·주석마다 학생 키워드를 이어서 "무엇인지 → 어떻게 동작하는지 → 왜 중요한지(위험·대응)" 흐름으로 2 ~ 3문장. 학생이 적은 키워드는 **굵게**. 보안멘토 칸과, 관련 있는 섹션 보안멘토는 그 제목 바로 아랫줄에 한 단계 더 들여써서 "- 💡 보안멘토: …"로 따로 써.
+**키워드 점검** — 학생 키워드 중 틀렸거나 애매한 것, 실기에 자주 나오는데 빠진 핵심이 있으면 1줄씩 (없으면 "괜찮아요"). 확실하지 않으면 "교재 확인".
+**방금 틀린 칸** — 칸마다 무엇을 놓쳤는지와 기억 요령 1줄 (없으면 생략).
+**실기 답안 문장** — 이 블록이 서술형으로 나오면 그대로 쓸 수 있는 핵심 문장 2 ~ 3개.
+지도에 없는 숫자·명령어 옵션·법 조항을 지어내지 마.` }], t => { body.innerHTML = mdLite(t); });
+      setNote(key, { sig, text: full });
+      when.textContent = "방금 만듦"; if (btn) btn.textContent = "다시 만들기";
+    } catch (e) { body.innerHTML = ""; body.append(h("span", { style: "color:var(--bad)" }, "⚠️ " + e.message)); }
+  };
+  const btn = aiOn() ? h("button", { class: "btn ghost small", onclick: run }, saved ? "다시 만들기" : "만들기") : null;
+  when.textContent = saved ? (saved.sig === sig ? "저장된 정리" : "지도·키워드가 바뀌었어요 · 다시 만들 수 있어요") : "";
+  box.append(h("div", { class: "row", style: "justify-content:space-between" }, h("h2", { style: "margin:0" }, "🧾 이 블록 총정리"), h("div", { class: "row" }, when, btn)),
+    h("p", { class: "small muted", style: "margin:4px 0 8px" }, "내 지도·키워드·방금 틀린 칸을 보고 AI가 정리했어요. 교재가 기준이에요."),
+    body);
+  if (!aiOn()) body.append(h("span", { class: "small muted" }, "기록·백업 탭에서 OpenRouter 키를 넣으면 채점 뒤에 AI가 이 블록을 정리해 줘요."));
+  else if (saved && saved.text && saved.sig === sig && !saved.text.includes("길이 제한에서 잘렸어요")) body.innerHTML = mdLite(saved.text);
+  else setTimeout(run, 0);   // 채점하면 알아서 만들어요 (지도·키워드가 그대로면 저장된 걸 보여 줘요)
+  return box;
+}
 // 읽기 전 길잡이: 구조(제목·보안멘토·주석)만 보고 쉬운 말로 큰 그림을 먼저 잡아 줘요
 function previewCard(b) {
   const d = blk(b.id);
@@ -1648,6 +1694,7 @@ function recallPanel(blockId, onFinish) {
     save();
     paintResult(blockId, g, tree, result);
     gbtn.disabled = true;
+    result.append(summaryCard(blockId, g));
     autoExtract(blockId, result, g.results.filter(x => x.hits < x.total || x.misplaced.length).map(x => `- ${x.node.label}: 학생 답 "${x.text || "(비움)"}", 빠진 키워드 ${x.kwRes.filter(k => !k.hit).map(k => k.kw).join(", ") || "없음"}${x.misplaced.length ? ", 섞임 " + x.misplaced.map(m => m.tok + "→" + m.where).join(", ") : ""}`).join("\n"));
     if (onFinish) onFinish(g);
   } }, "채점");
