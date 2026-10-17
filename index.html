@@ -434,6 +434,9 @@ body.drawer-on .fab { display: none; }
 .ask-composer { position: sticky; bottom: 0; background: var(--surface); padding: 10px 0 4px; margin-top: 10px; border-top: 1px solid var(--line-soft); }
 .ask-modes { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
 .ask-modes .mode { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.ask-target-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.ask-target-row input { flex: 1; min-width: 0; font-size: 13.5px; padding: 7px 10px; }
+.ask-pair { margin: 10px 0 0; padding: 10px 12px; border: 1px dashed var(--warn); border-radius: var(--r-md); background: var(--warn-wash); }
 .ask-modes .mode.on { background: var(--accent-wash); border-color: var(--accent); color: var(--accent); }
 .ask-input { display: flex; align-items: flex-end; gap: 6px; border: 1px solid var(--line); border-radius: 14px; padding: 6px 6px 6px 12px; background: var(--surface); }
 .ask-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
@@ -1176,17 +1179,22 @@ function askDrawer(b, nodes) {
 
 // ───────── 모르는 말 바로 묻기 (② 읽기) ─────────
 const ASK_MODES = [
-  ["easy", "쉬운 말로", "어려운 단어 없이, 처음 배우는 사람도 알 수 있게 쉬운 말로 풀어 줘."],
-  ["analogy", "비유·예시로", "일상생활 비유 하나와 구체적인 예시 하나로 설명해 줘."],
-  ["why", "왜 필요한지", "이게 왜 필요한지, 없거나 잘못되면 뭐가 위험한지, 어떻게 점검·대응하는지 순서대로 설명해 줘."],
-  ["diff", "비슷한 것과 차이", "비슷해서 헷갈리기 쉬운 개념이 있으면 무엇과 어떻게 다른지 비교해 줘."],
+  ["easy", "쉽게", "어려운 단어 없이 처음 배우는 사람도 알 수 있게 쉬운 말로 풀고, 일상 비유 하나와 구체적인 예시 하나를 곁들여 줘."],
+  ["why", "왜 필요해?", "이게 왜 필요한지, 없거나 잘못되면 뭐가 위험한지, 어떻게 점검·대응하는지 순서대로 설명해 줘."],
+  ["diff", "뭐랑 달라?", ""],
 ];
-function makePrompt(b, path, text, mode) {
+// "뭐랑 달라?": 비교 대상은 그때그때 — 비워 두면 AI가 내 지도에서 헷갈리기 쉬운 걸 골라요
+function modeInstr(mode, target) {
+  if (mode !== "diff") return (ASK_MODES.find(x => x[0] === mode) || ASK_MODES[0])[2];
+  return (target ? `이것과 「${target}」가 무엇이 어떻게 다른지 비교해 줘.` : "내 지도·키워드와 이 단원 내용 중에서 이것과 가장 헷갈리기 쉬운 개념 1 ~ 2개를 골라서 비교해 줘.")
+    + " 무엇인지 → 어떻게 동작하는지 → 어디에 쓰이는지 → 실기에서 헷갈리는 포인트 순서로, 목록으로 짧게. 맨 끝 두 줄은 꼭 이 형식으로 써 줘:\n비교 대상: (비교한 개념 이름)\n한 줄 차이: (A는 …, B는 … 형식으로 한 줄)";
+}
+function makePrompt(b, path, text, mode, target) {
   const m = ASK_MODES.find(x => x[0] === mode) || ASK_MODES[0];
   let ctx = typeof blockContext === "function" ? blockContext([b.id]) : "";
   const secM = ctx && typeof sectionMentors === "function" ? sectionMentors(b) : "";
   if (secM) ctx += "\n[같은 섹션의 보안멘토 (다른 블록에서 적음, 이 섹션 전체에 걸린 설명)]\n" + secM;
-  return (ctx ? "아래는 내가 이 블록을 읽으며 만든 지도야. 설명할 때 이 흐름(상위 제목, 보안멘토, 주석, 내가 적은 키워드)에 맞춰서, 내가 적은 말과 이어지게 설명해 줘. 내가 적은 키워드가 틀렸으면 짚어 줘.\n\n" + ctx + "\n\n---\n\n" : "") + `정보보안기사 실기 공부 중이야. 알기사 실기 교재 「${b.title}」${path ? ` > ${path}` : ""} 부분을 읽다가 아래가 이해가 안 돼.\n\n"${text}"\n\n${m[2]}\n조건: 어려운 용어는 괄호 안에 쉬운 말로 풀어 주고, 6~8줄 이내로. 마지막 줄에 시험용 핵심 키워드 2~3개를 써 줘.`;
+  return (ctx ? "아래는 내가 이 블록을 읽으며 만든 지도야. 설명할 때 이 흐름(상위 제목, 보안멘토, 주석, 내가 적은 키워드)에 맞춰서, 내가 적은 말과 이어지게 설명해 줘. 내가 적은 키워드가 틀렸으면 짚어 줘.\n\n" + ctx + "\n\n---\n\n" : "") + `정보보안기사 실기 공부 중이야. 알기사 실기 교재 「${b.title}」${path ? ` > ${path}` : ""} 부분을 읽다가 아래가 이해가 안 돼.\n\n"${text}"\n\n${modeInstr(m[0], target)}\n조건: 어려운 용어는 괄호 안에 쉬운 말로 풀어 주고, 6~8줄 이내로. 마지막 줄에 시험용 핵심 키워드 2~3개를 써 줘.`;
 }
 function copyText(txt, msg) {
   (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(
@@ -1705,7 +1713,26 @@ function viewAIQuiz(main) {
 function askPanel(b, nodes) {
   let mode = "easy", thread = null, lastQ = "";
   const box = h("div", { class: "ask" });
-  const MODE_ICON = { easy: "🙂", analogy: "🧸", why: "⚠️", diff: "⚖️" };
+  const MODE_ICON = { easy: "🙂", why: "⚠️", diff: "⚖️" };
+  let lastMode = "easy", lastTarget = "";
+  const target = h("input", { type: "text", class: "ask-target", placeholder: "무엇과 비교할까요? 비워 두면 AI가 헷갈리기 쉬운 걸 골라요" });
+  const targetRow = h("div", { class: "ask-target-row hidden" }, h("span", { class: "small" }, "⚖️"), target);
+  const pairBar = h("div", { class: "ask-pair hidden" });
+  const showPair = ans => {
+    pairBar.innerHTML = ""; pairBar.classList.add("hidden");
+    if (lastMode !== "diff" || !ans) return;
+    const bm = ans.match(/비교\s*대상\s*[:：]\s*\**([^\n*]+)/), dm = ans.match(/한\s*줄\s*차이\s*[:：]\s*\**([^\n]+)/);
+    const A = (termIn.value.trim() || lastQ.replace(/[?？]\s*$/, "").replace(/(이|가|은|는|랑|이랑|과|와)?\s*(뭐야|뭐랑 달라|뭐가 달라|차이는?|다른 점)$/, "").trim()).slice(0, 30);
+    const B = (lastTarget || (bm ? bm[1] : "")).replace(/[*「」]/g, "").trim().slice(0, 30);
+    const note = dm ? dm[1].replace(/\*\*/g, "").trim() : "";
+    if (!A || !B) return;
+    const btn = h("button", { class: "btn small", onclick: () => {
+      const n = addPairs([{ a: A, b: B, diff: note }]); save();
+      btn.disabled = true; btn.textContent = n ? "✓ 헷갈리는 쌍에 추가했어요" : "이미 있는 쌍이에요";
+    } }, `⚖️ 헷갈리는 쌍에 추가: ${A} ↔ ${B}`);
+    pairBar.append(btn, note ? h("div", { class: "small muted", style: "margin-top:6px" }, note) : null);
+    pairBar.classList.remove("hidden");
+  };
   const cellName = p => { const n = nodes.find(x => x.path === p); return n ? n.label.replace(/^(보안\s*멘토|주석)\s*:?\s*/, (m) => /주석/.test(m) ? "📌 " : "💡 ") : ""; };
   // 어느 칸인지: 칩으로 보여 주고, 누르면 고르기
   const where = h("select", { class: "ask-where-sel hidden" }, h("option", { value: "" }, "칸을 고르지 않음 (블록 전체)"), nodes.map(n => h("option", { value: n.path }, "　".repeat(n.depth) + (n.mentor ? (n.note ? "📌 " : "💡 ") : "") + n.label.replace(/^(보안\s*멘토|주석)\s*:?\s*/, ""))));
@@ -1747,29 +1774,32 @@ function askPanel(b, nodes) {
   const autoGrow = () => { text.style.height = "auto"; text.style.height = Math.min(text.scrollHeight, 140) + "px"; };
   text.addEventListener("input", autoGrow);
   const modes = h("div", { class: "ask-modes" });
-  const paintModes = () => { modes.innerHTML = ""; ASK_MODES.forEach(m => modes.append(h("button", { class: "mode" + (m[0] === mode ? " on" : ""), "aria-pressed": m[0] === mode ? "true" : "false", onclick: () => { mode = m[0]; paintModes(); text.focus(); } }, MODE_ICON[m[0]] + " " + m[1]))); };
+  const paintModes = () => { modes.innerHTML = ""; ASK_MODES.forEach(m => modes.append(h("button", { class: "mode" + (m[0] === mode ? " on" : ""), "aria-pressed": m[0] === mode ? "true" : "false", onclick: () => { mode = m[0]; paintModes(); targetRow.classList.toggle("hidden", mode !== "diff"); (mode === "diff" ? target : text).focus(); } }, MODE_ICON[m[0]] + " " + m[1]))); };
   paintModes();
   const sendBtn = h("button", { class: "ask-send", title: aiOn() ? "보내기 (Enter)" : "질문 복사", onclick: () => submit() }, aiOn() ? "➤" : "📋");
   const newBtn = h("button", { class: "btn ghost small hidden", onclick: () => reset() }, "＋ 새 질문");
   const hint = h("div", { class: "small muted ask-hint" }, aiOn() ? "Enter 보내기 · Shift+Enter 줄바꿈" : "OpenRouter 키가 없어서 질문을 복사해요. Claude 앱에 붙여 넣으세요 (키는 기록·백업 탭)");
-  const composer = h("div", { class: "ask-composer" }, modes, h("div", { class: "ask-input" }, text, sendBtn), h("div", { class: "row", style: "justify-content:space-between;margin-top:4px" }, hint, newBtn));
+  const composer = h("div", { class: "ask-composer" }, modes, targetRow, h("div", { class: "ask-input" }, text, sendBtn), h("div", { class: "row", style: "justify-content:space-between;margin-top:4px" }, hint, newBtn));
   const busy = on => { sendBtn.disabled = on; text.disabled = on; };
   function submit() {
     const q = text.value.trim();
     if (!q) { text.focus(); return; }
-    if (!aiOn()) { copyText(makePrompt(b, where.value, q, mode), "질문을 복사했어요. Claude 앱에 붙여 넣으세요."); return; }
+    const tg = mode === "diff" ? target.value.trim() : "";
+    if (!aiOn()) { copyText(makePrompt(b, where.value, q, mode, tg), "질문을 복사했어요. Claude 앱에 붙여 넣으세요."); return; }
     const m = ASK_MODES.find(x => x[0] === mode);
+    const tag = mode === "easy" ? "" : "  · " + MODE_ICON[mode] + " " + (tg ? "「" + tg + "」와 비교" : m[1]);
+    lastMode = mode; lastTarget = tg;
     text.value = ""; autoGrow(); busy(true);
     if (!thread) {
       lastQ = q; empty.remove();
-      thread = aiThread(makePrompt(b, where.value, q, mode), { chat: true, shown: q + (mode !== "easy" ? "  · " + m[1] : ""), onAnswer: () => { saveBar.classList.remove("hidden"); if (!termIn.value) termIn.value = q.length <= 30 ? q.replace(/[?？]\s*$/, "").replace(/(이|가)?\s*(뭐야|뭐예요|무슨 뜻이야|뭐지)$/, "").trim() : ""; }, onDone: () => { busy(false); text.focus(); const last = [...box.querySelectorAll(".bub.ai")].pop(); if (last) last.scrollIntoView({ block: "nearest" }); } });
-      convo.append(thread, saveBar); newBtn.classList.remove("hidden");
+      thread = aiThread(makePrompt(b, where.value, q, mode, tg), { chat: true, shown: q + tag, onAnswer: (ans) => { showPair(ans[ans.length - 1]); saveBar.classList.remove("hidden"); if (!termIn.value) termIn.value = q.length <= 30 ? q.replace(/[?？]\s*$/, "").replace(/(이|가)?\s*(뭐야|뭐예요|무슨 뜻이야|뭐지)$/, "").trim() : ""; }, onDone: () => { busy(false); text.focus(); const last = [...box.querySelectorAll(".bub.ai")].pop(); if (last) last.scrollIntoView({ block: "nearest" }); } });
+      convo.append(thread, pairBar, saveBar); newBtn.classList.remove("hidden");
       text.placeholder = "이어서 물어보기…";
     } else {
-      thread.ask(mode !== "easy" ? q + "\n(" + m[2] + ")" : q, q + (mode !== "easy" ? "  · " + m[1] : ""));
+      thread.ask(mode !== "easy" ? q + "\n(" + modeInstr(mode, tg) + ")" : q, q + tag);
     }
   }
-  function reset() { thread = null; lastQ = ""; convo.innerHTML = ""; paintEmpty(); convo.append(empty); saveBar.classList.add("hidden"); termIn.value = ""; mine.value = ""; newBtn.classList.add("hidden"); text.placeholder = "모르는 단어나 문장을 적어요…"; text.focus(); }
+  function reset() { thread = null; lastQ = ""; pairBar.classList.add("hidden"); target.value = ""; convo.innerHTML = ""; paintEmpty(); convo.append(empty); saveBar.classList.add("hidden"); termIn.value = ""; mine.value = ""; newBtn.classList.add("hidden"); text.placeholder = "모르는 단어나 문장을 적어요…"; text.focus(); }
   text.addEventListener("keydown", e => {
     if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
