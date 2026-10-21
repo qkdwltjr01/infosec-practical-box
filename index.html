@@ -558,6 +558,13 @@ details.nb-sec[open] > summary::before { transform: rotate(90deg); }
   .nb-chips { grid-column: 2 / -1; grid-row: 2; justify-content: flex-start; }
   .nb-inner { padding: 2px 12px 12px; }
 }
+
+/* 전체 일정: 날짜 줄도 상자로 (10.22) */
+.sday { border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--bg); padding: 12px 14px; margin-bottom: 8px; }
+.sday.today { border-color: var(--accent-line); background: var(--accent-wash); padding: 12px 14px; }
+.sday.past { opacity: .62; }
+.sday .bl button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 640px) { .sday { padding: 11px 12px; } .sday .bl { min-width: 0; } .sday .bl button { max-width: 100%; } }
 </style>
 </head>
 <body>
@@ -649,7 +656,7 @@ const BLOCKS = [
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.22-6";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.22-7";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-29": ["2회독 1일차", "오전 30분 1회독 약점 목록(기록·백업 → 자주 틀린 칸) → 단답형 뒤 절반 전부(시스템 → 네트워크 → 애플리케이션 → 침해사고 → 일반 → 관리/법규) + ☆ 문제, 빠르게"],
@@ -990,7 +997,7 @@ function viewPlan(main) {
       const dn = bs.filter(b => isDone(b.id)).length;
       body.append(h("div", {}, h("b", {}, `${bs[0].id} ~ ${bs[bs.length - 1].id}`), h("span", { class: "small muted" }, ` · 이론 ${pages}쪽 · 블록 ${fmtMin(mins)} · ${dn}/${bs.length} 완료`)),
         h("div", { class: "bl" }, bs.map(b => h("button", { class: isDone(b.id) ? "done" : "", title: b.title, onclick: () => { studyId = b.id; studyStep = 0; timerSet(0); go("study"); } },
-          (isDone(b.id) ? "✓ " : "") + b.id + " " + b.title.replace(/^(★\s*)?S\d+\s*·?\s*/, (m, star) => star ? "★" : "").slice(0, 20)))),
+          (isDone(b.id) ? "✓ " : "") + b.id + " " + b.title.replace(/^(★\s*)?S\d+\s*·?\s*/, (m, star) => star ? "★" : "")))),
         h("div", { class: "small muted", style: "margin-top:4px" }, "저녁: 퀴즈 40분 + 단답 " + bs.map(danHalf).join(", ")));
     }
     if (PLAN[d]) body.append(h("div", {}, h("b", {}, PLAN[d][0]), " · ", PLAN[d][1]));
