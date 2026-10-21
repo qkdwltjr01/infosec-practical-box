@@ -478,6 +478,48 @@ body.drawer-on .fab { display: none; }
   input[type=text], input[type=password], textarea, select { font-size: 16px; }
   .card > table, .card > div > table { display: block; overflow-x: auto; }
 }
+
+/* 묻기 창 정리 (10.22) */
+.drawer-card { box-sizing: border-box; padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.drawer-top { position: static; flex: none; margin: 0; padding: 14px 16px 12px 18px; gap: 10px; align-items: flex-start; }
+.drawer-title { flex: 1; min-width: 0; }
+.drawer-name { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.drawer-cost { font-size: 12px; color: var(--text-3); margin-top: 3px; }
+.drawer-x { flex: none; width: 32px; height: 32px; border-radius: 8px; border: 0; background: transparent; color: var(--text-2); font-size: 20px; line-height: 1; cursor: pointer; }
+.drawer-x:hover { background: var(--surface-2); color: var(--text); }
+.ask { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ask-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 18px 8px; }
+.ask-head { margin-bottom: 12px; }
+.ask-where { font-size: 12.5px; padding: 5px 11px; background: var(--surface); }
+.chat { gap: 10px; }
+.bub { box-sizing: border-box; overflow-wrap: anywhere; }
+.bub.me { max-width: 85%; padding: 8px 13px; font-size: 14px; }
+.bub.ai { max-width: 100%; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.7; }
+.bub.ai .md-li { margin: 3px 0; }
+.cost-mini { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line-soft); font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.cost-mini:empty { display: none; }
+.ask-save { margin: 6px 0 0; padding: 0; border: 0; background: none; }
+.ask-save-btn { border: 0; background: none; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 2px; }
+.ask-save-btn:hover { text-decoration: underline; }
+.ask-save-form { margin-top: 6px; padding: 10px; border-radius: var(--r-md); background: var(--accent-wash); border: 1px solid var(--accent-line); }
+.ask-pair { margin: 8px 0 0; }
+.ask-list { margin: 16px 0 4px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.ask-list > summary { font-size: 13px; color: var(--text-2); }
+.ask-composer { position: static; flex: none; margin: 0; padding: 10px 18px 14px; border-top: 1px solid var(--line); background: var(--surface); }
+.ask-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.ask-bar .ask-modes { flex: 1; padding: 0; gap: 4px; }
+.ask-modes .mode { padding: 4px 10px; font-size: 12.5px; }
+.ask-new { flex: none; border: 0; background: none; color: var(--text-2); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.ask-new:hover { background: var(--surface-2); color: var(--text); }
+.ask-hint { margin-top: 6px; color: var(--text-3); }
+.ask-empty { padding: 30px 8px 18px; }
+@media (max-width: 640px) {
+  .drawer-card { height: 88vh; max-height: 88vh; }
+  .ask-scroll { padding: 10px 14px 8px; }
+  .ask-composer { padding: 8px 14px 12px; }
+  .drawer-top { padding: 12px 12px 10px 14px; }
+  .ask-hint { display: none; }
+}
 </style>
 </head>
 <body>
@@ -577,7 +619,7 @@ const BLOCKS = [
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.22-3";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.22-4";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-29": ["2회독 1일차", "오전 30분 1회독 약점 목록(기록·백업 → 자주 틀린 칸) → 단답형 뒤 절반 전부(시스템 → 네트워크 → 애플리케이션 → 침해사고 → 일반 → 관리/법규) + ☆ 문제, 빠르게"],
@@ -1236,16 +1278,18 @@ function askDrawer(b, nodes) {
   const inner = askPanel(b, nodes);
   const count = () => glossaryOf(b.id).length;
   const fab = h("button", { class: "fab", onclick: () => open() }, "❓ 묻기", h("span", { class: "fab-n" }));
-  const costInfo = h("div", { class: "small muted", style: "margin-top:2px" });
+  const costInfo = h("div", { class: "drawer-cost" });
   const paintCost = () => {
     const k = spentLoad().kinds.ask, bb = ((spentLoad().blocks || {})[b.id] || {}).ask;
-    costInfo.textContent = "💰 " + (k && k.n ? `묻기 한 번 평균 ${won(k.total / k.n)}` : "답마다 아래에 비용이 나와요") + (bb ? ` · 이 블록 묻기 ${bb.n}번 ${won(bb.total)}` : "");
+    costInfo.textContent = (k && k.n ? `한 번 평균 ${won(k.total / k.n)}` : "답마다 비용이 나와요") + (bb ? ` · 이 블록 ${bb.n}번 ${won(bb.total)}` : "");
   };
   const onCost = () => { if (!fab.isConnected) { document.removeEventListener("ai-cost", onCost); return; } paintCost(); };
   paintCost(); document.addEventListener("ai-cost", onCost);
   const paintFab = () => { const n = count(); fab.querySelector(".fab-n").textContent = n ? String(n) : ""; };
   panel.append(backdrop, h("div", { class: "drawer-card" },
-    h("div", { class: "drawer-top" }, h("span", { class: "drawer-ic" }, "❓"), h("div", {}, h("b", {}, "묻기"), h("div", { class: "small muted" }, b.id + " · 내 지도를 보고 쉽게 설명해요"), costInfo), h("button", { class: "oed-btn", style: "margin-left:auto", title: "닫기 (Esc)", onclick: () => close() }, "×")),
+    h("div", { class: "drawer-top" },
+      h("div", { class: "drawer-title" }, h("div", { class: "drawer-name" }, h("b", {}, "묻기"), h("span", { class: "pill" }, b.id)), costInfo),
+      h("button", { class: "drawer-x", title: "닫기 (Esc)", "aria-label": "닫기", onclick: () => close() }, "×")),
     inner));
   const onKey = e => { if (e.key === "Escape") close(); };
   function open(path) {
@@ -1354,6 +1398,12 @@ function creditLeft() {
   creditCache = { t: Date.now(), p };
   return p;
 }
+function costMini(u) {
+  const el = h("div", { class: "cost-mini", title: u.inTok || u.outTok ? `입력 ${u.inTok.toLocaleString()} · 출력 ${u.outTok.toLocaleString()} 토큰` : "" }, u.cost > 0 ? won(u.cost) : "");
+  const left = h("span"); el.append(left);
+  creditLeft().then(v => { if (v != null) left.textContent = ` · 남은 $${v.toFixed(2)}`; });
+  return el;
+}
 function costLine(u) {
   const el = h("div", { class: "small muted cost-line", style: "margin-top:6px" }, costText(u));
   const left = h("span");
@@ -1459,7 +1509,7 @@ function aiThread(firstUserMsg, opts) {
     follow.classList.add("hidden");
     try {
       const full = await aiStream(msgs, t => { out.innerHTML = mdLite(t); }, { kind: "ask", block: opts.block });
-      if (aiStream.last) out.append(costLine(aiStream.last));
+      if (aiStream.last) out.append(opts.chat ? costMini(aiStream.last) : costLine(aiStream.last));
       if (!full) out.innerHTML = "<span class=\"muted small\">빈 답이 왔어요. 다시 물어봐 주세요.</span>";
       msgs.push({ role: "assistant", content: full }); answers.push(full);
       if (opts.onAnswer) opts.onAnswer(answers);
@@ -1942,8 +1992,10 @@ function askPanel(b, nodes) {
   // 저장 줄 (답이 나오면)
   const termIn = h("input", { type: "text", placeholder: "용어 (예: LSA)" });
   const mine = h("input", { type: "text", placeholder: "내 말로 한 줄 (선택) 예) 로그인 검사관" });
+  const saveForm = h("div", { class: "ask-save-form hidden" });
   const saveBar = h("div", { class: "ask-save hidden" },
-    h("div", { class: "small", style: "font-weight:700;margin-bottom:6px" }, "📘 어휘장에 저장"),
+    h("button", { class: "ask-save-btn", onclick: () => { saveForm.classList.toggle("hidden"); if (!saveForm.classList.contains("hidden")) termIn.focus(); } }, "📘 어휘장에 저장"), saveForm);
+  saveForm.append(
     h("div", { class: "ask-save-row" }, termIn, mine),
     h("div", { class: "row", style: "margin-top:8px" },
       h("button", { class: "btn small", onclick: () => {
@@ -1952,7 +2004,7 @@ function askPanel(b, nodes) {
         const ai = thread && thread.answers.length ? thread.answers.join("\n\n") : "";
         if (!ai && !mine.value.trim() && !confirm("AI 답도, 내 말 정리도 없어요. 그래도 저장할까요?")) return;
         S.glossary.push({ id: newId(), u: Date.now(), term, full: lastQ, mine: mine.value.trim(), ai, block: b.id, path: where.value, date: todayStr(), known: 0, unknown: 0 });
-        save(); paintList(); saveBar.classList.add("hidden");
+        save(); paintList(); saveBar.classList.add("hidden"); saveForm.classList.add("hidden");
         alertBox("어휘장에 저장했어요" + (ai ? " (AI 설명도 같이)" : "") + ". 인출·아침 복습·저녁 퀴즈에서 다시 나와요.");
         if (box.onSaved) box.onSaved();
       } }, "저장"),
@@ -1962,12 +2014,12 @@ function askPanel(b, nodes) {
   const autoGrow = () => { text.style.height = "auto"; text.style.height = Math.min(text.scrollHeight, 140) + "px"; };
   text.addEventListener("input", autoGrow);
   const modes = h("div", { class: "ask-modes" });
-  const paintModes = () => { modes.innerHTML = ""; ASK_MODES.forEach(m => modes.append(h("button", { class: "mode" + (m[0] === mode ? " on" : ""), "aria-pressed": m[0] === mode ? "true" : "false", onclick: () => { mode = m[0]; paintModes(); targetRow.classList.toggle("hidden", mode !== "diff"); (mode === "diff" ? target : text).focus(); } }, MODE_ICON[m[0]] + " " + m[1]))); };
+  const paintModes = () => { modes.innerHTML = ""; ASK_MODES.forEach(m => modes.append(h("button", { class: "mode" + (m[0] === mode ? " on" : ""), "aria-pressed": m[0] === mode ? "true" : "false", onclick: () => { mode = m[0]; paintModes(); targetRow.classList.toggle("hidden", mode !== "diff"); (mode === "diff" ? target : text).focus(); } }, m[1]))); };
   paintModes();
   const sendBtn = h("button", { class: "ask-send", title: aiOn() ? "보내기 (Enter)" : "질문 복사", onclick: () => submit() }, aiOn() ? "➤" : "📋");
-  const newBtn = h("button", { class: "btn ghost small hidden", onclick: () => reset() }, "＋ 새 질문");
+  const newBtn = h("button", { class: "ask-new hidden", onclick: () => reset() }, "＋ 새 질문");
   const hint = h("div", { class: "small muted ask-hint" }, aiOn() ? "Enter 보내기 · Shift+Enter 줄바꿈" : "OpenRouter 키가 없어서 질문을 복사해요. Claude 앱에 붙여 넣으세요 (키는 기록·백업 탭)");
-  const composer = h("div", { class: "ask-composer" }, modes, targetRow, h("div", { class: "ask-input" }, text, sendBtn), h("div", { class: "row", style: "justify-content:space-between;margin-top:4px" }, hint, newBtn));
+  const composer = h("div", { class: "ask-composer" }, h("div", { class: "ask-bar" }, modes, newBtn), targetRow, h("div", { class: "ask-input" }, text, sendBtn), hint);
   const busy = on => { sendBtn.disabled = on; text.disabled = on; };
   function submit() {
     const q = text.value.trim();
@@ -1987,7 +2039,7 @@ function askPanel(b, nodes) {
       thread.ask(mode !== "easy" ? q + "\n(" + modeInstr(mode, tg) + ")" : q, q + tag);
     }
   }
-  function reset() { thread = null; lastQ = ""; pairBar.classList.add("hidden"); target.value = ""; convo.innerHTML = ""; paintEmpty(); convo.append(empty); saveBar.classList.add("hidden"); termIn.value = ""; mine.value = ""; newBtn.classList.add("hidden"); text.placeholder = "모르는 단어나 문장을 적어요…"; text.focus(); }
+  function reset() { thread = null; lastQ = ""; pairBar.classList.add("hidden"); target.value = ""; convo.innerHTML = ""; paintEmpty(); convo.append(empty); saveBar.classList.add("hidden"); saveForm.classList.add("hidden"); termIn.value = ""; mine.value = ""; newBtn.classList.add("hidden"); text.placeholder = "모르는 단어나 문장을 적어요…"; text.focus(); }
   text.addEventListener("keydown", e => {
     if (e.isComposing || e.keyCode === 229) return;
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
@@ -2005,7 +2057,7 @@ function askPanel(b, nodes) {
       list.append(d);
     }
   };
-  box.append(h("div", { class: "ask-head" }, whereChip, where), convo, list, composer);
+  box.append(h("div", { class: "ask-scroll" }, h("div", { class: "ask-head" }, whereChip, where), convo, list), composer);
   box.setWhere = p => { where.value = p; where.classList.add("hidden"); paintWhere(); };
   box.focusText = () => text.focus();
   paintWhere(); paintList();
