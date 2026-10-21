@@ -565,6 +565,28 @@ details.nb-sec[open] > summary::before { transform: rotate(90deg); }
 .sday.past { opacity: .62; }
 .sday .bl button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 640px) { .sday { padding: 11px 12px; } .sday .bl { min-width: 0; } .sday .bl button { max-width: 100%; } }
+
+/* 반응형 다듬기 (10.22) */
+.timer .tleft { display: flex; align-items: baseline; gap: 10px; }
+.timer .tbtns { display: flex; gap: 6px; }
+th { white-space: nowrap; }
+@media (max-width: 640px) {
+  .steps { display: flex; overflow-x: auto; scrollbar-width: none; gap: 6px; margin-left: -2px; margin-right: -2px; padding: 0 2px 2px; scroll-snap-type: x proximity; }
+  .steps::-webkit-scrollbar { display: none; }
+  .steps button { flex: 1 0 auto; min-width: 82px; padding: 8px 10px; scroll-snap-align: start; }
+  .steps button b { font-size: 13px; white-space: nowrap; }
+  .timer { display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; padding: 10px 12px; }
+  .timer .tleft { flex-direction: column; gap: 0; }
+  .timer .bar { grid-column: 1 / -1; grid-row: 2; min-width: 0; }
+  .timer .tbtns { grid-column: 2; grid-row: 1; align-self: center; }
+  .card > table, .card > div > table { display: table; width: 100%; }
+  th, td { padding: 8px 6px; }
+  .bhead .metas { gap: 4px; }
+  .card h2 { font-size: 18px; }
+  .btn { min-height: 36px; }
+  .sday .dt { display: flex; align-items: baseline; gap: 8px; }
+  .sday .dt small { display: inline; }
+}
 </style>
 </head>
 <body>
@@ -656,7 +678,7 @@ const BLOCKS = [
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.22-7";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.22-8";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-29": ["2회독 1일차", "오전 30분 1회독 약점 목록(기록·백업 → 자주 틀린 칸) → 단답형 뒤 절반 전부(시스템 → 네트워크 → 애플리케이션 → 침해사고 → 일반 → 관리/법규) + ☆ 문제, 빠르게"],
@@ -865,10 +887,10 @@ function paintTimer() {
 }
 function timerEl() {
   return h("div", { class: "timer", id: "timer" },
-    h("span", { class: "tname muted small" }), h("span", { class: "clock" }),
+    h("div", { class: "tleft" }, h("span", { class: "tname muted small" }), h("span", { class: "clock" })),
     h("div", { class: "bar" }, h("i")),
-    h("button", { class: "btn small tbtn", onclick: timerToggle }),
-    h("button", { class: "btn ghost small", onclick: () => timerSet(T.step) }, "초기화"));
+    h("div", { class: "tbtns" }, h("button", { class: "btn small tbtn", onclick: timerToggle }),
+      h("button", { class: "btn ghost small", onclick: () => timerSet(T.step) }, "초기화")));
 }
 
 // ───────── 화면 전환 ─────────
@@ -1245,7 +1267,7 @@ function foldGuide(area, key, keepLast) {
   const kids = [...area.children]; const head = kids[0];
   const move = kids.slice(1, kids.length - (keepLast || 0)); if (!move.length) return;
   const d = h("details", { class: "guide" }, h("summary", {}, "하는 방법"), ...move);
-  let closed = false; try { closed = localStorage.getItem("infosec-guide-" + key) === "1"; } catch (e) {}
+  let closed = window.innerWidth <= 640; try { const v = localStorage.getItem("infosec-guide-" + key); if (v != null) closed = v === "1"; } catch (e) {}
   d.open = !closed;
   d.addEventListener("toggle", () => { try { localStorage.setItem("infosec-guide-" + key, d.open ? "0" : "1"); } catch (e) {} });
   head.after(d);
@@ -1428,7 +1450,7 @@ const AI_MODELS = [
   ["anthropic/claude-opus-5.5", "Claude Opus 5.5 — 가장 깊게 (약 20원)"],
 ];
 const AI_SYSTEM = "너는 정보보안기사 실기 시험을 준비하는 학생의 튜터야. 학생은 어휘력이 약한 편이라, 어려운 말은 쉬운 말로 풀어 주고 일상 비유를 써 줘. 한국어로 짧고 정확하게 답해. 확실하지 않은 내용은 확실하지 않다고 말하고, 교재(알기사) 표현과 다를 수 있는 분류·숫자·법 조항은 \"교재로 한 번 확인\"이라고 표시해. 마크다운은 굵게(**)와 목록(-)만 써.";
-let AI = (() => { try { const o = JSON.parse(localStorage.getItem(AI_STORE) || "null"); if (o) return { key: o.key || "", model: o.model || AI_MODELS[0][0] }; } catch (e) {} return { key: "", model: AI_MODELS[0][0] }; })();
+let AI = (() => { try { const o = JSON.parse(localStorage.getItem(AI_STORE) || "null"); if (o) return { key: o.key || "", model: o.model || AI_MODELS[0][0], autoRegrade: o.autoRegrade !== false }; } catch (e) {} return { key: "", model: AI_MODELS[0][0], autoRegrade: true }; })();
 function aiSave() { try { localStorage.setItem(AI_STORE, JSON.stringify(AI)); } catch (e) {} }
 function aiOn() { return !!AI.key; }
 
@@ -1667,6 +1689,9 @@ function aiCard() {
       h("button", { class: "btn ghost small", onclick: () => { try { localStorage.removeItem(SPENT_STORE); } catch (e) {} render(); } }, "0으로"));
       return line; })(),
     aiOn() ? creditBox() : null,
+    aiOn() ? h("label", { class: "row small", style: "margin-top:10px;gap:6px;cursor:pointer" },
+      (() => { const c = h("input", { type: "checkbox" }); c.checked = AI.autoRegrade !== false; c.addEventListener("change", () => { AI.autoRegrade = c.checked; aiSave(); }); return c; })(),
+      h("span", {}, h("b", {}, "④ 인출 채점 뒤 🤖 뜻 채점 자동"), " (노랑·빨강 칸만 · 한 번 몇 원)")) : null,
     h("p", { class: "small muted" }, `원 표시는 1달러 = ${USD_KRW.toLocaleString()}원으로 계산한 대략값이에요. 정확한 청구액은 OpenRouter 사이트의 Activity에서 봐요.`),
     h("p", { class: "small muted", style: "margin-top:8px" }, "키는 이 브라우저에만 저장돼요. GitHub(Gist) 동기화에도 올라가지 않아서, 폰·다른 브라우저에서는 한 번 더 넣어야 해요. 답은 틀릴 수 있으니 분류·숫자·법 조항은 교재로 확인하세요."));
 }
@@ -2196,6 +2221,8 @@ function recallPanel(blockId, onFinish) {
     paintResult(blockId, g, tree, result);
     gbtn.disabled = true;
     result.append(summaryCard(blockId, g));
+    // 채점 뒤 뜻 채점 자동 (노랑·빨강 칸이 있을 때만)
+    if (aiOn() && AI.autoRegrade !== false) { const rb = [...result.querySelectorAll("button")].find(x => /뜻으로 다시 채점/.test(x.textContent)); if (rb) aiRegrade(blockId, g, tree, result, rb); }
     autoExtract(blockId, result, g.results.filter(x => x.hits < x.total || x.misplaced.length).map(x => `- ${x.node.label}: 학생 답 "${x.text || "(비움)"}", 빠진 키워드 ${x.kwRes.filter(k => !k.hit).map(k => k.kw).join(", ") || "없음"}${x.misplaced.length ? ", 섞임 " + x.misplaced.map(m => m.tok + "→" + m.where).join(", ") : ""}`).join("\n"));
     if (onFinish) onFinish(g);
   } }, "채점");
