@@ -520,6 +520,44 @@ body.drawer-on .fab { display: none; }
   .drawer-top { padding: 12px 12px 10px 14px; }
   .ask-hint { display: none; }
 }
+
+/* 전반 다듬기 (10.22) */
+.steps button.fin b::after { content: " ✓"; color: var(--ok); font-weight: 700; }
+.steps button.fin:not(.on) { background: var(--ok-wash); border-color: var(--ok-line); }
+.prog-dots { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.prog-dots span { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text-3); }
+.prog-dots span.on { background: var(--ok-wash); color: var(--ok); font-weight: 600; }
+.bitem { transition: border-color .15s, box-shadow .15s; }
+.bitem:hover { border-color: var(--line); box-shadow: var(--shadow-1); }
+.callout .btn { margin-left: 4px; vertical-align: middle; }
+details.nb { padding: 0; overflow: hidden; }
+.nb-sum { list-style: none; cursor: pointer; display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px; align-items: center; padding: 14px 16px; }
+.nb-sum::-webkit-details-marker { display: none; }
+.nb-sum:hover { background: var(--bg); }
+.nb-id { font-size: 12.5px; font-weight: 700; color: var(--accent); background: var(--accent-wash); border-radius: 8px; padding: 4px 8px; font-variant-numeric: tabular-nums; min-width: 34px; text-align: center; }
+.nb-id.done { color: var(--ok); background: var(--ok-wash); }
+.nb-main { min-width: 0; }
+.nb-title { font-weight: 650; line-height: 1.35; }
+.nb-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.nb-chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.nb-chips .chip { margin: 0; font-size: 12px; }
+.chip.info { background: var(--accent-wash); color: var(--accent); border-color: var(--accent-line); }
+.nb-caret { font-size: 20px; color: var(--text-3); transition: transform .15s; line-height: 1; }
+details.nb[open] > .nb-sum .nb-caret { transform: rotate(90deg); }
+details.nb[open] > .nb-sum { border-bottom: 1px solid var(--line-soft); }
+.nb-inner { padding: 4px 16px 14px; }
+details.nb-sec { border-bottom: 1px solid var(--line-soft); }
+details.nb-sec > summary { list-style: none; cursor: pointer; padding: 12px 0; font-size: 13.5px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+details.nb-sec > summary::-webkit-details-marker { display: none; }
+details.nb-sec > summary::before { content: "▸"; color: var(--text-3); transition: transform .15s; }
+details.nb-sec[open] > summary::before { transform: rotate(90deg); }
+.nb-body { padding: 0 0 12px 14px; border-left: 2px solid var(--line-soft); margin-left: 4px; }
+.nb-actions { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 12px; }
+@media (max-width: 640px) {
+  .nb-sum { grid-template-columns: auto 1fr auto; gap: 10px; padding: 12px; }
+  .nb-chips { grid-column: 2 / -1; grid-row: 2; justify-content: flex-start; }
+  .nb-inner { padding: 2px 12px 12px; }
+}
 </style>
 </head>
 <body>
@@ -619,7 +657,7 @@ const BLOCKS = [
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.22-4";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.22-5";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-29": ["2회독 1일차", "오전 30분 1회독 약점 목록(기록·백업 → 자주 틀린 칸) → 단답형 뒤 절반 전부(시스템 → 네트워크 → 애플리케이션 → 침해사고 → 일반 → 관리/법규) + ☆ 문제, 빠르게"],
@@ -685,10 +723,18 @@ function h(tag, attrs = {}, ...kids) {
 }
 function todayStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
 function addDays(s, n) { const d = new Date(s + "T00:00:00"); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
-function fmtDate(s) { const d = new Date(s + "T00:00:00"); return (d.getMonth()+1) + "." + String(d.getDate()).padStart(2,"0") + "(" + "일월화수목금토"[d.getDay()] + ")"; }
+function fmtDate(s) { if (!s) return ""; const d = new Date(s + "T00:00:00"); return (d.getMonth()+1) + "." + String(d.getDate()).padStart(2,"0") + "(" + "일월화수목금토"[d.getDay()] + ")"; }
 function dday() { return Math.round((new Date(EXAM_DATE+"T00:00:00") - new Date(todayStr()+"T00:00:00")) / 86400000); }
 function danHalf(b) { const [a, z] = b.dan; const mid = a + Math.floor((z - a) / 2); return `p.${a}~${mid}`; }
 function alertBox(msg) { const m = $("#msg"); if (m) { m.textContent = msg; m.classList.remove("hidden"); } else console.log(msg); }
+function blockProgress(id) {
+  const d = S.blocks[id] || {};
+  const hasKw = Object.values(d.kw || {}).some(v => kwList(v).length);
+  const sm = S.notes && S.notes["summary:" + id];
+  return [!!(d.outline || "").trim(), hasKw, !!(sm && sm.text), (d.attempts || []).length > 0];
+}
+// 다음에 할 단계 (다 했으면 ④ 인출)
+function nextStep(id) { const pr = blockProgress(id); const i = pr.indexOf(false); return i < 0 ? 3 : i; }
 function isDone(id) { return (S.blocks[id]?.attempts || []).length > 0; }
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
@@ -863,19 +909,24 @@ function viewNotes(main) {
       const hay = [b.title, d.outline, JSON.stringify(d.kw || {}), sm && sm.text, pv && pv.text].join(" ").toLowerCase();
       if (qq && !hay.includes(qq)) continue;
       shown++;
-      const sec = (title, el, open) => { const x = h("details", { class: "guide" }, h("summary", {}, title), el); x.open = !!open; return x; };
-      const det = h("details", { class: "card" });
-      det.append(h("summary", { style: "cursor:pointer" },
-        h("b", {}, `${b.id} `), b.title, h("span", { class: "small muted" }, `  · ${fmtDate(b.date)} · 이론편 p.${b.pages}`), " ",
-        sm && sm.text ? h("span", { class: "chip ok" }, "🧾 총정리") : null, pv && pv.text ? h("span", { class: "chip" }, "🧭 길잡이") : null,
-        d.outline ? h("span", { class: "chip gray" }, `🗺 ${parseOutline(d.outline).length}칸`) : null));
-      const inner = h("div", { style: "margin-top:8px" });
+      const sec = (title, el, open) => { const x = h("details", { class: "nb-sec" }, h("summary", {}, title), h("div", { class: "nb-body" }, el)); x.open = !!open; return x; };
+      const det = h("details", { class: "card nb" });
+      det.append(h("summary", { class: "nb-sum" },
+        h("span", { class: "nb-id" + (isDone(b.id) ? " done" : "") }, b.id),
+        h("div", { class: "nb-main" }, h("div", { class: "nb-title" }, b.title.replace(/^★\s*/, "")),
+          h("div", { class: "nb-meta" }, `${b.part} · ${fmtDate(b.date)} · 이론편 p.${b.pages}`)),
+        h("div", { class: "nb-chips" },
+          sm && sm.text ? h("span", { class: "chip ok" }, "총정리") : null, pv && pv.text ? h("span", { class: "chip info" }, "길잡이") : null,
+          d.outline ? h("span", { class: "chip gray" }, `지도 ${parseOutline(d.outline).length}칸`) : null),
+        h("span", { class: "nb-caret", "aria-hidden": "true" }, "›")));
+      const inner = h("div", { class: "nb-inner" });
       if (sm && sm.text) inner.append(sec("🧾 총정리", aiDiv(sm.text), true));
       if (pv && pv.text) inner.append(sec("🧭 읽기 전 길잡이", aiDiv(pv.text), !(sm && sm.text)));
       if (d.outline) inner.append(sec("🗺 내 지도 · 키워드", mapView(d), false));
-      inner.append(h("div", { class: "row", style: "margin-top:8px" },
-        h("button", { class: "btn ghost small", onclick: () => { studyId = b.id; studyStep = 3; timerSet(3); go("study"); } }, "이 블록 인출하러 가기"),
-        h("button", { class: "btn ghost small", onclick: () => { studyId = b.id; studyStep = 1; timerSet(1); go("study"); } }, "② 읽기로 가기")));
+      inner.append(h("div", { class: "nb-actions" },
+        h("button", { class: "btn small", onclick: () => { studyId = b.id; studyStep = 3; timerSet(3); go("study"); } }, "④ 인출하러 가기"),
+        h("button", { class: "btn ghost small", onclick: () => { studyId = b.id; studyStep = 2; timerSet(2); go("study"); } }, "③ 정리 공부"),
+        h("button", { class: "btn ghost small", onclick: () => { studyId = b.id; studyStep = 1; timerSet(1); go("study"); } }, "② 읽기")));
       det.append(inner);
       if (qq) det.open = true;
       list.append(det);
@@ -960,13 +1011,15 @@ function viewToday(main) {
   } else {
     const list = h("div", { class: "blist" });
     todays.forEach((b, i) => {
-      const dn = isDone(b.id);
+      const dn = isDone(b.id), pr = blockProgress(b.id), started = pr.some(Boolean), ns = nextStep(b.id);
+      const open = st => { studyId = b.id; studyStep = st; timerSet(st); go("study"); };
       list.append(h("div", { class: "bitem" + (dn ? " done" : "") },
         h("div", { class: "idx" }, dn ? "✓" : String(i + 1)),
         h("div", {}, h("div", { class: "t" }, h("span", { class: "id" }, b.id), b.title),
-          h("div", { class: "m" }, `이론편 p.${b.pages} · ${b.pn}쪽 · ${fmtMin(blockMin(b))}`)),
+          h("div", { class: "m" }, `이론편 p.${b.pages} · ${b.pn}쪽 · ${fmtMin(blockMin(b))}`),
+          started ? h("div", { class: "prog-dots" }, ["구조", "읽기", "정리", "인출"].map((nm, k) => h("span", { class: pr[k] ? "on" : "" }, (pr[k] ? "✓ " : "") + nm))) : null),
         h("div", { class: "act" }, dn ? h("span", { class: "pill done" }, "완료") : null,
-          h("button", { class: "btn small" + (dn ? " ghost" : ""), onclick: () => { studyId = b.id; studyStep = 0; timerSet(0); go("study"); } }, dn ? "다시 보기" : "시작"))));
+          h("button", { class: "btn small" + (dn ? " ghost" : ""), onclick: () => open(dn ? 0 : ns) }, dn ? "다시 보기" : started ? `이어서 ${STEPS[ns].name.split(" ")[0]}` : "시작"))));
     });
     card.append(list);
     card.append(h("p", { class: "small muted", style: "margin:10px 0 0" }, "블록 시간은 휴식 포함, 점심·저녁 제외예요. 쪽수에 따라 블록마다 달라요."));
@@ -1004,7 +1057,7 @@ function viewStudy(main) {
       h("span", { class: "meta-chip" }, `블록 ${fmtMin(blockMin(b))}`), h("span", { class: "meta-chip" }, `저녁 단답 ${danHalf(b)}`),
       (() => { const bs = blockSpent(b.id); return bs ? h("span", { class: "meta-chip", title: bs.text }, `💰 AI ${won(bs.total)}`) : null; })()),
     h("div", { class: "row", style: "margin-top:12px" }, h("span", { class: "small muted" }, "다른 블록"), sel),
-    h("div", { class: "steps" }, STEPS.map((s, i) => h("button", { class: i === studyStep ? "on" : "", onclick: () => { studyStep = i; timerSet(i); render(); } },
+    h("div", { class: "steps" }, STEPS.map((s, i) => h("button", { class: (i === studyStep ? "on" : "") + (blockProgress(b.id)[i] ? " fin" : ""), onclick: () => { studyStep = i; timerSet(i); render(); } },
       h("b", {}, s.name), h("span", {}, stepMins(b)[i] + "분")))),
     timerEl()));
   const area = h("div", { class: "card" }); main.append(area);
@@ -2102,7 +2155,8 @@ function viewGlossary(main) {
 function recallPanel(blockId, onFinish) {
   const box = h("div"); const data = blk(blockId); const nodes = parseOutline(data.outline);
   const gradable = nodes.filter(n => kwList(data.kw[n.path]).length);
-  if (!gradable.length) { box.append(h("p", {}, `${blockId}: 키워드를 적은 칸이 없어서 인출할 게 없어요. ② 읽기에서 키워드를 먼저 적어 주세요.`)); return box; }
+  if (!gradable.length) { box.append(h("div", { class: "callout" }, h("b", {}, `${blockId}: 아직 인출할 칸이 없어요.`), " ② 읽기에서 칸마다 키워드를 적으면 여기서 책을 덮고 다시 채울 수 있어요. ",
+    h("button", { class: "btn ghost small", onclick: () => { studyId = blockId; studyStep = 1; timerSet(1); go("study"); } }, "② 읽기로 가기"))); return box; }
   const answers = {};
   box.append(h("p", {}, h("b", {}, "책과 메모를 덮고"), " 칸마다 떠오르는 키워드를 쉼표로 적어요. 다 쓰면 채점을 눌러요."));
   const tree = treeView(nodes, n => {
@@ -2608,7 +2662,7 @@ function viewHelp(main) {
       h("li", {}, "타이머는 새로고침하면 처음부터 다시 시작해요."))));
 }
 
-(function () { const n = document.getElementById("notice"); let closed = false; try { closed = localStorage.getItem("infosec-notice-closed") === "1"; } catch (e) {} n.open = !closed; n.addEventListener("toggle", () => { try { localStorage.setItem("infosec-notice-closed", n.open ? "0" : "1"); } catch (e) {} }); })();
+(function () { const n = document.getElementById("notice"); let closed = false; try { const v = localStorage.getItem("infosec-notice-closed"); closed = v !== "0" && (v === "1" || localStorage.getItem("infosec-notice-seen") === "1"); localStorage.setItem("infosec-notice-seen", "1"); } catch (e) {} n.open = !closed; n.addEventListener("toggle", () => { try { localStorage.setItem("infosec-notice-closed", n.open ? "0" : "1"); } catch (e) {} }); })();
 SY = loadSyncCfg();
 if (syncOn()) { syncReady = true; render(); doSync(); startPoll(); } else render();
 document.addEventListener("visibilitychange", () => { if (!document.hidden && syncOn()) doSync(); });
