@@ -577,7 +577,7 @@ const BLOCKS = [
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.21-4";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.22-1";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-29": ["2회독 1일차", "오전 30분 1회독 약점 목록(기록·백업 → 자주 틀린 칸) → 단답형 뒤 절반 전부(시스템 → 네트워크 → 애플리케이션 → 침해사고 → 일반 → 관리/법규) + ☆ 문제, 빠르게"],
@@ -959,7 +959,8 @@ function viewStudy(main) {
     h("div", { class: "title" }, h("span", { style: "color:var(--accent);margin-right:8px" }, b.id), b.title),
     h("div", { class: "metas" },
       h("span", { class: "meta-chip" }, `이론편 p.${b.pages}`), h("span", { class: "meta-chip" }, `${b.pn}쪽`),
-      h("span", { class: "meta-chip" }, `블록 ${fmtMin(blockMin(b))}`), h("span", { class: "meta-chip" }, `저녁 단답 ${danHalf(b)}`)),
+      h("span", { class: "meta-chip" }, `블록 ${fmtMin(blockMin(b))}`), h("span", { class: "meta-chip" }, `저녁 단답 ${danHalf(b)}`),
+      (() => { const bs = blockSpent(b.id); return bs ? h("span", { class: "meta-chip", title: bs.text }, `💰 AI ${won(bs.total)}`) : null; })()),
     h("div", { class: "row", style: "margin-top:12px" }, h("span", { class: "small muted" }, "다른 블록"), sel),
     h("div", { class: "steps" }, STEPS.map((s, i) => h("button", { class: i === studyStep ? "on" : "", onclick: () => { studyStep = i; timerSet(i); render(); } },
       h("b", {}, s.name), h("span", {}, stepMins(b)[i] + "분")))),
@@ -1235,9 +1236,16 @@ function askDrawer(b, nodes) {
   const inner = askPanel(b, nodes);
   const count = () => glossaryOf(b.id).length;
   const fab = h("button", { class: "fab", onclick: () => open() }, "❓ 묻기", h("span", { class: "fab-n" }));
+  const costInfo = h("div", { class: "small muted", style: "margin-top:2px" });
+  const paintCost = () => {
+    const k = spentLoad().kinds.ask, bb = ((spentLoad().blocks || {})[b.id] || {}).ask;
+    costInfo.textContent = "💰 " + (k && k.n ? `묻기 한 번 평균 ${won(k.total / k.n)}` : "답마다 아래에 비용이 나와요") + (bb ? ` · 이 블록 묻기 ${bb.n}번 ${won(bb.total)}` : "");
+  };
+  const onCost = () => { if (!fab.isConnected) { document.removeEventListener("ai-cost", onCost); return; } paintCost(); };
+  paintCost(); document.addEventListener("ai-cost", onCost);
   const paintFab = () => { const n = count(); fab.querySelector(".fab-n").textContent = n ? String(n) : ""; };
   panel.append(backdrop, h("div", { class: "drawer-card" },
-    h("div", { class: "drawer-top" }, h("span", { class: "drawer-ic" }, "❓"), h("div", {}, h("b", {}, "묻기"), h("div", { class: "small muted" }, b.id + " · 내 지도를 보고 쉽게 설명해요")), h("button", { class: "oed-btn", style: "margin-left:auto", title: "닫기 (Esc)", onclick: () => close() }, "×")),
+    h("div", { class: "drawer-top" }, h("span", { class: "drawer-ic" }, "❓"), h("div", {}, h("b", {}, "묻기"), h("div", { class: "small muted" }, b.id + " · 내 지도를 보고 쉽게 설명해요"), costInfo), h("button", { class: "oed-btn", style: "margin-left:auto", title: "닫기 (Esc)", onclick: () => close() }, "×")),
     inner));
   const onKey = e => { if (e.key === "Escape") close(); };
   function open(path) {
@@ -1310,11 +1318,26 @@ function aiOn() { return !!AI.key; }
 const USD_KRW = 1400;
 const SPENT_STORE = "infosec-ai-spent-v1";
 function spentLoad() { try { return JSON.parse(localStorage.getItem(SPENT_STORE) || "null") || { total: 0, n: 0, kinds: {}, since: todayStr() }; } catch (e) { return { total: 0, n: 0, kinds: {}, since: todayStr() }; } }
-function spentAdd(u, kind) {
+function spentAdd(u, kind, block) {
   if (!u || !(u.cost > 0)) return;
   const sp = spentLoad(); sp.total += u.cost; sp.n++;
   if (kind) { const k = sp.kinds[kind] || (sp.kinds[kind] = { total: 0, n: 0 }); k.total += u.cost; k.n++; }
+  if (block) { const bb = (sp.blocks || (sp.blocks = {}))[block] || (sp.blocks[block] = {}); const k = bb[kind || "etc"] || (bb[kind || "etc"] = { total: 0, n: 0 }); k.total += u.cost; k.n++; }
   try { localStorage.setItem(SPENT_STORE, JSON.stringify(sp)); } catch (e) {}
+  try { document.dispatchEvent(new CustomEvent("ai-cost")); } catch (e) {}
+}
+const KIND_NAME = { summary: "총정리", preview: "길잡이", ask: "묻기", json: "자동 정리·퀴즈" };
+// 종류별 한 번 평균 ("💰 길잡이 한 번 평균 약 15원 (지금까지 3번)")
+function avgLine(kind) {
+  const k = spentLoad().kinds[kind]; if (!k || !k.n) return null;
+  return h("div", { class: "small muted cost-line", style: "margin-top:6px" }, `💰 ${KIND_NAME[kind]} 한 번 평균 ${won(k.total / k.n)} (지금까지 ${k.n}번)`);
+}
+// 블록 하나에 쓴 AI 비용 합계
+function blockSpent(id) {
+  const bb = (spentLoad().blocks || {})[id]; if (!bb) return null;
+  let total = 0; const parts = [];
+  for (const [kind, v] of Object.entries(bb)) { total += v.total; parts.push(`${KIND_NAME[kind] || kind} ${v.n}번 ${won(v.total)}`); }
+  return { total, text: parts.join(" · ") };
 }
 function won(usd) { const w = usd * USD_KRW; return w < 1 ? "1원 미만" : "약 " + (w < 10 ? w.toFixed(1) : Math.round(w)) + "원"; }
 function costText(u) {
@@ -1337,7 +1360,7 @@ async function aiStream(messages, onText, opts) {
     if (part.finish !== "length") break;
     if (round === 3) { full += "\n\n⚠️ 답이 너무 길어서 잘렸어요. 다시 만들기(또는 다시 묻기)를 눌러 주세요."; onText(full); }
   }
-  aiStream.last = usage; spentAdd(usage, opts && opts.kind);
+  aiStream.last = usage; spentAdd(usage, opts && opts.kind, opts && opts.block);
   if (!full.trim()) throw new Error("AI가 빈 답을 보냈어요. 다시 해 주세요.");
   return full;
 }
@@ -1420,7 +1443,7 @@ function aiThread(firstUserMsg, opts) {
     box.insertBefore(out, follow);
     follow.classList.add("hidden");
     try {
-      const full = await aiStream(msgs, t => { out.innerHTML = mdLite(t); }, { kind: "ask" });
+      const full = await aiStream(msgs, t => { out.innerHTML = mdLite(t); }, { kind: "ask", block: opts.block });
       if (aiStream.last) out.append(costLine(aiStream.last));
       if (!full) out.innerHTML = "<span class=\"muted small\">빈 답이 왔어요. 다시 물어봐 주세요.</span>";
       msgs.push({ role: "assistant", content: full }); answers.push(full);
@@ -1473,7 +1496,7 @@ function aiCard() {
     h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "small muted" }, "모델"), sel),
     (() => { const sp = spentLoad(); const k = sp.kinds.summary; const line = h("p", { class: "small", style: "margin-top:8px" },
       h("b", {}, `💰 지금까지 AI 비용 ${sp.total > 0 ? won(sp.total) + " ($" + sp.total.toFixed(3) + ")" : "0원"}`), ` · ${sp.n}번 · ${fmtDate(sp.since)}부터`,
-      k && k.n ? ` · 총정리 한 번 평균 ${won(k.total / k.n)}` : "", " ",
+      Object.entries(sp.kinds).filter(([, v]) => v.n).map(([kk, v]) => ` · ${KIND_NAME[kk] || kk} 평균 ${won(v.total / v.n)}`).join(""), " ",
       h("button", { class: "btn ghost small", onclick: () => { try { localStorage.removeItem(SPENT_STORE); } catch (e) {} render(); } }, "0으로"));
       return line; })(),
     h("p", { class: "small muted" }, `원 표시는 1달러 = ${USD_KRW.toLocaleString()}원으로 계산한 대략값이에요. 정확한 청구액은 OpenRouter 사이트의 Activity에서 봐요.`),
@@ -1658,7 +1681,7 @@ ${g ? "[방금 인출에서 틀린 칸]\n" + (misses || "없음 (다 맞음)") +
 **키워드 점검** — 학생 키워드 중 틀렸거나 애매한 것, 실기에 자주 나오는데 빠진 핵심이 있으면 1줄씩 (없으면 "괜찮아요"). 확실하지 않으면 "교재 확인".
 ${g ? "**방금 틀린 칸** — 칸마다 무엇을 놓쳤는지와 기억 요령 1줄 (없으면 생략)." : "**인출 대비 기억 요령** — 헷갈리기 쉬운 칸 3 ~ 5개를 골라 칸마다 외우는 요령 1줄 (앞글자 따기, 비유, 숫자 묶기 등)."}
 **실기 답안 문장** — 이 블록이 서술형으로 나오면 그대로 쓸 수 있는 핵심 문장 2 ~ 3개.
-지도에 없는 숫자·명령어 옵션·법 조항을 지어내지 마.` }], t => { body.innerHTML = mdLite(t); }, { maxTokens: 8000, kind: "summary" });
+지도에 없는 숫자·명령어 옵션·법 조항을 지어내지 마.` }], t => { body.innerHTML = mdLite(t); }, { maxTokens: 8000, kind: "summary", block: blockId });
       setNote(key, { sig, text: full, usage: aiStream.last });
       costEl.replaceChildren(costLine(aiStream.last));
       when.textContent = "방금 만듦"; if (btn) btn.textContent = "다시 만들기";
@@ -1668,7 +1691,7 @@ ${g ? "**방금 틀린 칸** — 칸마다 무엇을 놓쳤는지와 기억 요�
   when.textContent = saved ? (saved.sig === sig ? "저장된 정리" : "지도·키워드가 바뀌었어요 · 다시 만들 수 있어요") : "";
   const costEl = h("div");
   if (saved && saved.usage) costEl.append(costLine(saved.usage));
-  else { const k = spentLoad().kinds.summary; if (k && k.n) costEl.append(h("div", { class: "small muted", style: "margin-top:6px" }, `💰 총정리 한 번 평균 ${won(k.total / k.n)} (지금까지 ${k.n}번)`)); }
+  else { const a = avgLine("summary"); if (a) costEl.append(a); }
   box.append(h("div", { class: "row", style: "justify-content:space-between" }, h("h2", { style: "margin:0" }, "🧾 이 블록 총정리"), h("div", { class: "row" }, when, btn)),
     h("p", { class: "small muted", style: "margin:4px 0 8px" }, g ? "내 지도·키워드·방금 틀린 칸을 보고 AI가 정리했어요. 교재가 기준이에요." : "내 지도·키워드를 보고 AI가 정리했어요. 교재가 기준이에요."),
     body, costEl);
@@ -1710,7 +1733,7 @@ ${secM}
 **제목별 미리보기** — 지도의 들여쓰기를 그대로 살린 중첩 목록으로 써 (단계마다 공백 2칸 들여쓰고 "- "로 시작, 큰 제목도 한 줄씩 넣어서 어디 밑인지 보이게). 가장 작은 제목·보안멘토·주석마다 "이게 뭐고 왜 나오는지"를 쉬운 말로 1줄. 섹션 보안멘토가 짚은 포인트가 어떤 제목에 해당하면, 그 제목 바로 아랫줄에 한 단계 더 들여써서 "- 💡 섹션 보안멘토: …"로 따로 1 ~ 2줄 써 줘 (같은 줄에 붙이지 마).
 **먼저 알아둘 말** — 본문에 나올 어려운 용어 4 ~ 6개, 각각 "용어 = 쉬운 뜻" 한 줄.
 **읽으면서 찾을 것** — 실기(단답·서술·실무)에 잘 나오는 포인트를 질문 3개로 (답은 쓰지 마).
-지도에 없는 세부 내용·숫자·명령어 옵션은 지어내지 말고, 확실하지 않으면 "본문에서 확인"이라고 써.` }], t => { body.innerHTML = mdLite(t); }, { kind: "preview" });
+지도에 없는 세부 내용·숫자·명령어 옵션은 지어내지 말고, 확실하지 않으면 "본문에서 확인"이라고 써.` }], t => { body.innerHTML = mdLite(t); }, { kind: "preview", block: b.id });
       setNote(key, { sig, text: full, usage: aiStream.last });
       costEl.replaceChildren(costLine(aiStream.last));
       when.textContent = secM ? "방금 만듦 · 같은 섹션 보안멘토도 참고" : "방금 만듦"; if (btn) btn.textContent = "다시 만들기";
@@ -1718,7 +1741,7 @@ ${secM}
   };
   const btn = aiOn() ? h("button", { class: "btn ghost small", onclick: run }, saved ? "다시 만들기" : "만들기") : null;
   when.textContent = saved ? (saved.sig === sig ? (secM ? "같은 섹션 보안멘토도 참고했어요" : "") : "구조나 섹션 보안멘토가 바뀌었어요 · 다시 만들 수 있어요") : "";
-  const costEl = h("div"); if (saved && saved.usage) costEl.append(costLine(saved.usage));
+  const costEl = h("div"); if (saved && saved.usage) costEl.append(costLine(saved.usage)); else { const a = avgLine("preview"); if (a) costEl.append(a); }
   box.append(h("summary", {}, h("b", {}, "🧭 읽기 전 길잡이"), h("span", { class: "small muted" }, "  내 지도를 보고 AI가 쉽게 큰 그림을 잡아 줘요 (3분)")),
     h("div", { class: "row", style: "justify-content:space-between;margin-top:6px" }, when, btn),
     body, costEl,
@@ -1914,7 +1937,7 @@ function askPanel(b, nodes) {
     text.value = ""; autoGrow(); busy(true);
     if (!thread) {
       lastQ = q; empty.remove();
-      thread = aiThread(makePrompt(b, where.value, q, mode, tg), { chat: true, shown: q + tag, onAnswer: (ans) => { showPair(ans[ans.length - 1]); saveBar.classList.remove("hidden"); if (!termIn.value) termIn.value = q.length <= 30 ? q.replace(/[?？]\s*$/, "").replace(/(이|가)?\s*(뭐야|뭐예요|무슨 뜻이야|뭐지)$/, "").trim() : ""; }, onDone: () => { busy(false); text.focus(); const last = [...box.querySelectorAll(".bub.ai")].pop(); if (last) last.scrollIntoView({ block: "nearest" }); } });
+      thread = aiThread(makePrompt(b, where.value, q, mode, tg), { chat: true, block: b.id, shown: q + tag, onAnswer: (ans) => { showPair(ans[ans.length - 1]); saveBar.classList.remove("hidden"); if (!termIn.value) termIn.value = q.length <= 30 ? q.replace(/[?？]\s*$/, "").replace(/(이|가)?\s*(뭐야|뭐예요|무슨 뜻이야|뭐지)$/, "").trim() : ""; }, onDone: () => { busy(false); text.focus(); const last = [...box.querySelectorAll(".bub.ai")].pop(); if (last) last.scrollIntoView({ block: "nearest" }); } });
       convo.append(thread, pairBar, saveBar); newBtn.classList.remove("hidden");
       text.placeholder = "이어서 물어보기…";
     } else {
@@ -2031,7 +2054,7 @@ function paintResult(blockId, g, tree, result) {
       : h("p", {}, "🎉 빠진 칸이 없어요."),
     fb,
     h("div", { class: "row" },
-      aiOn() && misses.length ? h("button", { class: "btn", onclick: e => { e.target.disabled = true; fb.append(aiThread(blockContext([blockId]) + "\n\n---\n\n" + resultText(blockId, g) + "\n\n위 지도와 결과를 보고, 빠진 키워드가 무슨 뜻인지와 내가 섞어 쓴 개념의 차이를 칸마다 2 ~ 3줄로 쉽게 설명해 줘. 내가 쓴 답 중 틀린 내용이 있으면 짚어 줘.")); } }, "🤖 틀린 칸 AI 설명") : null,
+      aiOn() && misses.length ? h("button", { class: "btn", onclick: e => { e.target.disabled = true; fb.append(aiThread(blockContext([blockId]) + "\n\n---\n\n" + resultText(blockId, g) + "\n\n위 지도와 결과를 보고, 빠진 키워드가 무슨 뜻인지와 내가 섞어 쓴 개념의 차이를 칸마다 2 ~ 3줄로 쉽게 설명해 줘. 내가 쓴 답 중 틀린 내용이 있으면 짚어 줘.", { block: blockId })); } }, "🤖 틀린 칸 AI 설명") : null,
       h("button", { class: "btn ghost", onclick: () => copyResult(blockId, g) }, "결과 복사"),
       h("button", { class: "btn ghost", onclick: () => { go("pairs"); } }, "헷갈리는 쌍 등록하러 가기"))));
 }
