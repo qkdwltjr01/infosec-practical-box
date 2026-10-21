@@ -588,15 +588,7 @@ details.nb-sec[open] > summary::before { transform: rotate(90deg); }
   </nav>
 </header>
 
-<details class="card notice" id="notice">
-  <summary>ⓘ 먼저 알아둘 것</summary>
-  <ul>
-    <li><b>AI 답변은 OpenRouter 키를 넣었을 때만</b> 돼요 ("기록·백업" 탭). 그 밖의 인터넷 연결은 동기화를 켰을 때 내 GitHub 비공개 Gist에만 해요.</li>
-    <li><b>지도(트리)와 키워드는 미리 들어 있지 않아요.</b> 전부 내가 <b>알기사 교재를 보고 직접</b> 입력해요. 그래서 교재와 어긋날 일이 없어요.</li>
-    <li><b>채점은 글자 비교예요.</b> ② 읽기 때 내가 적은 키워드가 ④ 인출 답에 들어 있는지만 확인해요. <b>내용이 맞는지 판단하지는 못해요.</b> 내용 피드백은 인출 결과의 <b>"🤖 틀린 칸 AI 설명"</b>으로 받아요.</li>
-    <li><b>기록은 이 브라우저에 자동 저장돼요.</b> PC·웹·폰에서 같은 기록을 쓰려면 <b>"기록·백업" 탭에서 클라우드 동기화</b>를 켜세요.</li>
-  </ul>
-</details>
+
 
 <main id="main"></main>
 </div>
@@ -657,7 +649,7 @@ const BLOCKS = [
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.22-5";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.22-6";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-29": ["2회독 1일차", "오전 30분 1회독 약점 목록(기록·백업 → 자주 틀린 칸) → 단답형 뒤 절반 전부(시스템 → 네트워크 → 애플리케이션 → 침해사고 → 일반 → 관리/법규) + ☆ 문제, 빠르게"],
@@ -778,11 +770,30 @@ function parseOutline(text) {
 function norm(s) { return (s || "").toLowerCase().replace(/[\s\-_.,·()\[\]{}'"`:;\\]/g, ""); }
 function kwList(str) { return (str || "").split(/[,\n]/).map(s => s.trim()).filter(Boolean); }
 function alts(kw) { return kw.split("|").map(s => s.trim()).filter(Boolean); }
-function tokMatch(tok, alt) {
-  const a = norm(tok), b = norm(alt);
-  if (!a || !b) return false;
-  return a === b || (b.length >= 2 && a.includes(b)) || (a.length >= 3 && b.includes(a));
+// 끝에 붙은 조사·어미는 떼고 비교해요 (예: "권한상승을" = "권한상승")
+const JOSA = /(으로써|으로서|에서는|이라고|이라서|으로|에서|에게|까지|부터|이다|이며|이고|하는|하여|해서|은|는|이|가|을|를|의|로|에|와|과|도|만|다)$/;
+function stem(s) { const n = norm(s); return n.length > 2 ? n.replace(JOSA, "") : n; }
+// 편집 거리 (오타 한두 글자 봐주기)
+function editDist(a, b) {
+  if (Math.abs(a.length - b.length) > 2) return 9;
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
 }
+// 정확히 맞으면 2, 비슷하게 맞으면(조사·오타) 1, 아니면 0
+function tokScore(tok, alt) {
+  const a = norm(tok), b = norm(alt);
+  if (!a || !b) return 0;
+  if (a === b || (b.length >= 2 && a.includes(b)) || (a.length >= 3 && b.includes(a))) return 2;
+  const sa = stem(tok), sb = stem(alt);
+  if (sa && sb && (sa === sb || (sb.length >= 2 && sa.includes(sb)) || (sa.length >= 3 && sb.includes(sa)))) return 1;
+  const L = Math.max(sa.length, sb.length);
+  if (L >= 4 && editDist(sa, sb) <= (L >= 8 ? 2 : 1)) return 1;
+  return 0;
+}
+function tokMatch(tok, alt) { return tokScore(tok, alt) > 0; }
 function grade(blockId, answers) {
   const b = blk(blockId); const nodes = parseOutline(b.outline);
   const results = []; let hit = 0, total = 0;
@@ -790,7 +801,11 @@ function grade(blockId, answers) {
     const kws = kwList(b.kw[n.path]);
     if (!kws.length) continue;
     const text = answers[n.path] || ""; const toks = kwList(text); const whole = norm(text);
-    const kwRes = kws.map(kw => ({ kw, hit: alts(kw).some(al => (norm(al).length >= 2 && whole.includes(norm(al))) || toks.some(t => tokMatch(t, al))) }));
+    const kwRes = kws.map(kw => {
+      const exact = alts(kw).some(al => (norm(al).length >= 2 && whole.includes(norm(al))) || toks.some(t => tokScore(t, al) === 2));
+      const near = !exact && alts(kw).some(al => toks.some(t => tokScore(t, al) === 1) || (stem(al).length >= 3 && whole.includes(stem(al))));
+      return { kw, hit: exact || near, near };
+    });
     const misplaced = [], extra = [];
     for (const t of toks) {
       if (kws.some(kw => alts(kw).some(al => tokMatch(t, al)))) continue;
@@ -2184,10 +2199,12 @@ function recallPanel(blockId, onFinish) {
 function paintResult(blockId, g, tree, result) {
   for (const r of g.results) {
     const li = tree.querySelector(`li[data-path="${CSS.escape(r.node.path)}"]`); if (!li) continue;
+    li.classList.remove("ok", "bad", "part");
     li.classList.add(r.hits === r.total && !r.misplaced.length ? "ok" : r.hits === 0 ? "bad" : "part");
     const inp = li.querySelector("input"); if (inp) inp.disabled = true;
-    li.append(h("div", { class: "small" },
-      r.kwRes.map(k => h("span", { class: "chip " + (k.hit ? "ok" : "bad") }, (k.hit ? "✓ " : "빠짐 ") + k.kw)),
+    const old = li.querySelector(".gr-chips"); if (old) old.remove();
+    li.append(h("div", { class: "small gr-chips" },
+      r.kwRes.map(k => h("span", { class: "chip " + (k.hit ? "ok" : "bad"), title: k.why || "" }, (k.hit ? "✓ " : "빠짐 ") + k.kw + (k.ai ? " · 뜻 맞음" : k.near ? " ≈" : ""))),
       r.misplaced.map(m => h("span", { class: "chip warn" }, `섞임: "${m.tok}" → '${m.where}' 칸 키워드`)),
       r.extra.map(x => h("span", { class: "chip gray" }, `메모에 없던 말: ${x}`))));
   }
@@ -2197,15 +2214,55 @@ function paintResult(blockId, g, tree, result) {
   const fb = h("div");
   result.append(h("div", { class: "card", style: "margin:12px 0 0" },
     h("div", { class: "score" }, `${g.hit} / ${g.total} (${pct}%)`),
-    h("p", { class: "small muted" }, "초록 = 다 맞음 · 노랑 = 일부 빠짐 또는 다른 칸 키워드가 섞임 · 빨강 = 하나도 못 씀 · 회색 = 메모에 없던 말 (틀렸다는 뜻은 아니에요)"),
+    h("p", { class: "small muted" }, "초록 = 다 맞음 · 노랑 = 일부 빠짐 또는 다른 칸 키워드가 섞임 · 빨강 = 하나도 못 씀 · 회색 = 메모에 없던 말 (틀렸다는 뜻은 아니에요). 띄어쓰기·조사·한두 글자 오타는 맞게 쳐요 (≈ 표시)."),
     misses.length ? h("div", {}, h("b", {}, "지금 책을 펴서 이 칸만 다시 확인하세요"),
       h("ul", {}, misses.map(r => h("li", {}, r.node.path, " — ", r.kwRes.filter(k => !k.hit).map(k => k.kw).join(", ") || "섞인 키워드 확인"))))
       : h("p", {}, "🎉 빠진 칸이 없어요."),
     fb,
     h("div", { class: "row" },
-      aiOn() && misses.length ? h("button", { class: "btn", onclick: e => { e.target.disabled = true; fb.append(aiThread(blockContext([blockId]) + "\n\n---\n\n" + resultText(blockId, g) + "\n\n위 지도와 결과를 보고, 빠진 키워드가 무슨 뜻인지와 내가 섞어 쓴 개념의 차이를 칸마다 2 ~ 3줄로 쉽게 설명해 줘. 내가 쓴 답 중 틀린 내용이 있으면 짚어 줘.", { block: blockId })); } }, "🤖 틀린 칸 AI 설명") : null,
+      aiOn() && misses.length ? h("button", { class: "btn", onclick: e => aiRegrade(blockId, g, tree, result, e.target) }, "🤖 뜻으로 다시 채점") : null,
+      aiOn() && misses.length ? h("button", { class: "btn ghost", onclick: e => { e.target.disabled = true; fb.append(aiThread(blockContext([blockId]) + "\n\n---\n\n" + resultText(blockId, g) + "\n\n위 지도와 결과를 보고, 빠진 키워드가 무슨 뜻인지와 내가 섞어 쓴 개념의 차이를 칸마다 2 ~ 3줄로 쉽게 설명해 줘. 내가 쓴 답 중 틀린 내용이 있으면 짚어 줘.", { block: blockId })); } }, "🤖 틀린 칸 AI 설명") : null,
       h("button", { class: "btn ghost", onclick: () => copyResult(blockId, g) }, "결과 복사"),
       h("button", { class: "btn ghost", onclick: () => { go("pairs"); } }, "헷갈리는 쌍 등록하러 가기"))));
+}
+
+// 🤖 뜻으로 다시 채점: 표현이 달라도 같은 뜻이면 맞게 쳐요 (동의어·영어/한글·풀어 쓴 말)
+async function aiRegrade(blockId, g, tree, result, btn) {
+  const cells = g.results.filter(r => r.hits < r.total).map(r => ({ path: r.node.path, answer: r.text || "", missing: r.kwRes.filter(k => !k.hit).map(k => k.kw) }));
+  if (!cells.length) return;
+  btn.disabled = true; btn.textContent = "🤖 채점하는 중…";
+  try {
+    const j = await aiJSON(`학생이 정보보안기사 실기 공부 중 책을 덮고 칸마다 기억나는 키워드를 썼어. 아래 칸마다 "빠진 키워드"의 뜻을 학생 답이 담고 있는지 판단해 줘.
+- 표현이 달라도 같은 뜻이면 맞음: 동의어, 영어↔한글(예: SetUID = 셋유아이디), 약어↔풀네임, 풀어 쓴 말, 오타.
+- 뜻이 다르거나, 너무 막연하거나("보안 관련"), 다른 개념이면 틀림. 애매하면 틀림.
+- 키워드 문자열은 바꾸지 말고 그대로 돌려줘.
+
+${cells.map(c => `■ ${c.path}
+  학생 답: ${c.answer || "(비움)"}
+  빠진 키워드: ${c.missing.join(" / ")}`).join("\n")}
+
+JSON 형식: {"cells":[{"path":"칸 이름 그대로","ok":["맞다고 본 키워드", ...],"why":"한 줄 이유"}]}`, 2000);
+    let up = 0;
+    for (const c of (j.cells || [])) {
+      const r = g.results.find(x => x.node.path === c.path); if (!r) continue;
+      for (const kw of (c.ok || [])) { const k = r.kwRes.find(x => !x.hit && x.kw === kw); if (k) { k.hit = true; k.ai = true; k.why = c.why || ""; up++; } }
+    }
+    // 점수·기록 다시 계산
+    const before = new Map(g.results.map(r => [r.node.path, r.hits === r.total && !r.misplaced.length]));
+    for (const r of g.results) r.hits = r.kwRes.filter(k => k.hit).length;
+    g.hit = g.results.reduce((a, r) => a + r.hits, 0);
+    for (const r of g.results) {
+      const full = r.hits === r.total && !r.misplaced.length;
+      if (full && !before.get(r.node.path)) { const st = S.nodeStats[blockId + "::" + r.node.path]; if (st && st.miss > 0) { st.miss--; st.hit++; } }
+    }
+    const att = blk(blockId).attempts; const last = att[att.length - 1];
+    if (last) { last.hit = g.hit; last.missed = g.results.filter(r => r.hits < r.total).map(r => r.node.path); last.ai = true; }
+    save();
+    const keep = [...result.children].slice(1);   // 점수 카드만 다시 그리고 총정리 등은 그대로
+    paintResult(blockId, g, tree, result);
+    keep.forEach(x => result.append(x));
+    alertBox(up ? `🤖 뜻이 맞는 키워드 ${up}개를 맞게 바꿨어요.` : "🤖 다시 봐도 빠진 키워드는 그대로예요.");
+  } catch (e) { btn.disabled = false; btn.textContent = "🤖 뜻으로 다시 채점"; alertBox("⚠️ " + e.message); }
 }
 
 function resultText(blockId, g) {
@@ -2662,7 +2719,6 @@ function viewHelp(main) {
       h("li", {}, "타이머는 새로고침하면 처음부터 다시 시작해요."))));
 }
 
-(function () { const n = document.getElementById("notice"); let closed = false; try { const v = localStorage.getItem("infosec-notice-closed"); closed = v !== "0" && (v === "1" || localStorage.getItem("infosec-notice-seen") === "1"); localStorage.setItem("infosec-notice-seen", "1"); } catch (e) {} n.open = !closed; n.addEventListener("toggle", () => { try { localStorage.setItem("infosec-notice-closed", n.open ? "0" : "1"); } catch (e) {} }); })();
 SY = loadSyncCfg();
 if (syncOn()) { syncReady = true; render(); doSync(); startPoll(); } else render();
 document.addEventListener("visibilitychange", () => { if (!document.hidden && syncOn()) doSync(); });
