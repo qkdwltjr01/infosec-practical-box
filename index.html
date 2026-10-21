@@ -577,6 +577,7 @@ const BLOCKS = [
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 const EXAM_DATE = "2026-11-14";
+const APP_VER = "10.21-4";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-29": ["2회독 1일차", "오전 30분 1회독 약점 목록(기록·백업 → 자주 틀린 칸) → 단답형 뒤 절반 전부(시스템 → 네트워크 → 애플리케이션 → 침해사고 → 일반 → 관리/법규) + ☆ 문제, 빠르게"],
@@ -771,7 +772,7 @@ function render() {
   const on = document.querySelector("#nav button.on"); if (on && on.scrollIntoView) on.scrollIntoView({ block: "nearest", inline: "nearest" });
   const done = BLOCKS.filter(b => isDone(b.id)).length;
   const d = dday();
-  $("#headerSub").textContent = `${fmtDate(todayStr())} · 1회독 ${done}/${BLOCKS.length} 블록`;
+  $("#headerSub").textContent = `${fmtDate(todayStr())} · 1회독 ${done}/${BLOCKS.length} 블록 · v${APP_VER}`;
   $("#syncHead").textContent = syncOn() ? " · ☁ " + syncText() : "";
   $("#ddayNum").textContent = d > 0 ? `D-${d}` : d === 0 ? "D-DAY" : `D+${-d}`;
   $("#progBar").style.width = (done / BLOCKS.length * 100) + "%";
@@ -910,8 +911,6 @@ function viewToday(main) {
       : "⚠️ 확인 지점: 10.24 밤까지 B25를 못 끝냈으면, 남은 블록은 ② 읽기를 ★ 항목만으로 줄이고 저녁 단답을 빼서 따라잡아요. 1회독 끝(10.28)은 안 밀어요."));
   }
   if (PLAN[t]) card.append(h("div", { class: "callout info" }, h("b", {}, PLAN[t][0]), " · ", PLAN[t][1]));
-  if (t === "2026-10-21") card.append(h("div", { class: "callout" }, h("b", {}, "📝 실기 원서 접수했는지 먼저 확인하세요."), " 마감 10.22(목). 안 했으면 지금 바로 접수부터."));
-  if (t === "2026-10-22") card.append(h("div", { class: "callout" }, h("b", {}, "📝 원서 접수 마감일이에요."), " 접수했는지 확인하세요."));
   if (!todays.length) {
     const next = BLOCKS.find(b => b.date > t);
     card.append(h("p", { class: "muted" }, next ? `오늘 배정된 블록이 없어요. 다음은 ${fmtDate(next.date)} ${next.id}부터예요.` : "1회독 블록 일정이 끝났어요. 위의 오늘 할 일대로 해요."));
@@ -2074,15 +2073,17 @@ function stepSummary(area, b) {
     h("ol", {},
       h("li", {}, h("b", {}, "한 줄 요약"), "을 먼저 읽고 큰 그림을 잡아요."),
       h("li", {}, h("b", {}, "제목별 정리"), "를 한 칸씩 읽어요. 읽고 나서 눈을 떼고 ", h("b", {}, "\"뭐야 → 어떻게 → 왜\""), "를 속으로 한 번 말해 봐요. 막히면 그 칸만 다시 읽어요."),
-      h("li", {}, "이해가 안 되는 말은 ", h("b", {}, "② 읽기의 ❓"), "로 물어보고, 정리와 교재가 다르면 ", h("b", {}, "교재가 기준"), "이에요."),
+      h("li", {}, "이해가 안 되는 말은 ", h("b", {}, "오른쪽 아래 ❓ 묻기"), "로 물어보고, 정리와 교재가 다르면 ", h("b", {}, "교재가 기준"), "이에요."),
       h("li", {}, h("b", {}, "기억 요령"), "을 읽고, 마지막 1분은 화면을 내리고 굵은 키워드만 떠올려 봐요.")));
   foldGuide(area, "summary", 1);
-  if (!nodes.length) { area.append(h("div", { class: "oed-empty" }, "아직 지도가 없어요. ① 구조부터 해 주세요.")); return; }
+  const drawer = askDrawer(b, nodes);
+  if (!nodes.length) { area.append(h("div", { class: "oed-empty" }, "아직 지도가 없어요. ① 구조부터 해 주세요."), drawer.fab, drawer.panel); return; }
   if (!kwN) area.append(h("div", { class: "callout" }, "② 읽기에서 적은 키워드가 아직 없어요. 키워드를 적어야 정리가 내 공부에 맞게 나와요. 그래도 지도만으로 만들 수는 있어요."));
   area.append(summaryCard(b.id, null),
     h("div", { class: "row", style: "margin-top:10px" },
       h("button", { class: "btn ghost", onclick: () => { studyStep = 1; timerSet(1); render(); } }, "← ② 읽기로 (키워드 고치기)"),
-      h("button", { class: "btn", onclick: () => { studyStep = 3; timerSet(3); render(); } }, "다음: ④ 인출 (정리 덮고) →")));
+      h("button", { class: "btn", onclick: () => { studyStep = 3; timerSet(3); render(); } }, "다음: ④ 인출 (정리 덮고) →")),
+    drawer.fab, drawer.panel);
 }
 
 function stepRecall(area, b) {
