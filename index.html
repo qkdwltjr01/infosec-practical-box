@@ -1307,12 +1307,25 @@ function aiSave() { try { localStorage.setItem(AI_STORE, JSON.stringify(AI)); } 
 function aiOn() { return !!AI.key; }
 
 // 답을 조금씩 받아서 화면에 바로 보여줘요 (stream)
-async function aiStream(messages, onText) {
+async function aiStream(messages, onText, opts) {
+  const maxTokens = (opts && opts.maxTokens) || 4000;
+  let full = "";
+  for (let round = 0; round < 4; round++) {
+    const msgs = round === 0 ? messages : messages.concat([{ role: "assistant", content: full }, { role: "user", content: "답이 길이 제한에서 끊겼어. 끊긴 바로 다음 글자부터 이어서 써. 앞 내용은 반복하지 말고, 형식은 그대로." }]);
+    const part = await aiStreamOnce(msgs, maxTokens, t => onText(full + t));
+    full += part.text;
+    if (part.finish !== "length") break;
+    if (round === 3) { full += "\n\n⚠️ 답이 너무 길어서 잘렸어요. 다시 만들기(또는 다시 묻기)를 눌러 주세요."; onText(full); }
+  }
+  if (!full.trim()) throw new Error("AI가 빈 답을 보냈어요. 다시 해 주세요.");
+  return full;
+}
+async function aiStreamOnce(messages, maxTokens, onText) {
   const headers = { "Authorization": "Bearer " + AI.key, "Content-Type": "application/json", "X-Title": "InfoSec Practical Box" };
   if (/^https?:/.test(location.href)) headers["HTTP-Referer"] = location.origin + location.pathname;
   let r;
   try {
-    r = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers, body: JSON.stringify({ model: AI.model, messages, stream: true, max_tokens: 4000 }) });
+    r = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers, body: JSON.stringify({ model: AI.model, messages, stream: true, max_tokens: maxTokens }) });
   } catch (e) { throw new Error("AI 서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요. (" + e.message + ")"); }
   if (!r.ok) {
     let msg = ""; try { const j = await r.json(); msg = (j.error && j.error.message) || ""; } catch (e) {}
@@ -1337,9 +1350,7 @@ async function aiStream(messages, onText) {
       } catch (e) { if (e.message && !/JSON/.test(e.message)) throw e; }
     }
   }
-  if (finish === "length") { full += "\n\n⚠️ 답이 길이 제한에서 잘렸어요. 다시 만들기(또는 다시 묻기)를 눌러 주세요."; onText(full); }
-  else if (!full.trim()) throw new Error("AI가 빈 답을 보냈어요. 다시 해 주세요.");
-  return full;
+  return { text: full, finish };
 }
 // 굵게·목록·코드만 그려요 (나머지는 그대로 글자)
 function mdLite(text) {
@@ -1617,7 +1628,7 @@ ${g ? "[방금 인출에서 틀린 칸]\n" + (misses || "없음 (다 맞음)") +
 **키워드 점검** — 학생 키워드 중 틀렸거나 애매한 것, 실기에 자주 나오는데 빠진 핵심이 있으면 1줄씩 (없으면 "괜찮아요"). 확실하지 않으면 "교재 확인".
 ${g ? "**방금 틀린 칸** — 칸마다 무엇을 놓쳤는지와 기억 요령 1줄 (없으면 생략)." : "**인출 대비 기억 요령** — 헷갈리기 쉬운 칸 3 ~ 5개를 골라 칸마다 외우는 요령 1줄 (앞글자 따기, 비유, 숫자 묶기 등)."}
 **실기 답안 문장** — 이 블록이 서술형으로 나오면 그대로 쓸 수 있는 핵심 문장 2 ~ 3개.
-지도에 없는 숫자·명령어 옵션·법 조항을 지어내지 마.` }], t => { body.innerHTML = mdLite(t); });
+지도에 없는 숫자·명령어 옵션·법 조항을 지어내지 마.` }], t => { body.innerHTML = mdLite(t); }, { maxTokens: 8000 });
       setNote(key, { sig, text: full });
       when.textContent = "방금 만듦"; if (btn) btn.textContent = "다시 만들기";
     } catch (e) { body.innerHTML = ""; body.append(h("span", { style: "color:var(--bad)" }, "⚠️ " + e.message)); }
@@ -1628,7 +1639,7 @@ ${g ? "**방금 틀린 칸** — 칸마다 무엇을 놓쳤는지와 기억 요�
     h("p", { class: "small muted", style: "margin:4px 0 8px" }, g ? "내 지도·키워드·방금 틀린 칸을 보고 AI가 정리했어요. 교재가 기준이에요." : "내 지도·키워드를 보고 AI가 정리했어요. 교재가 기준이에요."),
     body);
   if (!aiOn()) body.append(h("span", { class: "small muted" }, "기록·백업 탭에서 OpenRouter 키를 넣으면 AI가 이 블록을 정리해 줘요."));
-  else if (saved && saved.text && saved.sig === sig && !saved.text.includes("길이 제한에서 잘렸어요")) body.innerHTML = mdLite(saved.text);
+  else if (saved && saved.text && saved.sig === sig && !/길이 제한에서 잘렸어요|너무 길어서 잘렸어요/.test(saved.text)) body.innerHTML = mdLite(saved.text);
   else setTimeout(run, 0);   // 채점하면 알아서 만들어요 (지도·키워드가 그대로면 저장된 걸 보여 줘요)
   return box;
 }
@@ -1677,7 +1688,7 @@ ${secM}
     body,
     h("p", { class: "small muted", style: "margin-top:8px" }, "길잡이는 제목만 보고 만든 거라 교재와 다를 수 있어요. 본문이 기준이에요. 읽다가 막히면 그 칸의 ❓로 물어봐요."));
   if (!aiOn()) body.append(h("span", { class: "small muted" }, "기록·백업 탭에서 OpenRouter 키를 넣으면, 읽기 전에 AI가 이 블록의 큰 그림을 쉽게 설명해 줘요."));
-  else if (saved && saved.text && saved.text.length > 200 && !saved.text.includes("길이 제한에서 잘렸어요")) body.innerHTML = mdLite(saved.text);   // 잘린 길잡이는 다시 만들어요
+  else if (saved && saved.text && saved.text.length > 200 && !/길이 제한에서 잘렸어요|너무 길어서 잘렸어요/.test(saved.text)) body.innerHTML = mdLite(saved.text);   // 잘린 길잡이는 다시 만들어요
   else setTimeout(run, 0);   // 처음 들어오면 알아서 만들어요
   return box;
 }
