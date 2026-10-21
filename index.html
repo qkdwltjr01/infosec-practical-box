@@ -1307,16 +1307,38 @@ function aiSave() { try { localStorage.setItem(AI_STORE, JSON.stringify(AI)); } 
 function aiOn() { return !!AI.key; }
 
 // 답을 조금씩 받아서 화면에 바로 보여줘요 (stream)
+// 비용: OpenRouter가 답마다 알려 주는 실제 청구액(달러)을 원으로 바꿔 보여 줘요. 누적은 이 브라우저에만 저장
+const USD_KRW = 1400;
+const SPENT_STORE = "infosec-ai-spent-v1";
+function spentLoad() { try { return JSON.parse(localStorage.getItem(SPENT_STORE) || "null") || { total: 0, n: 0, kinds: {}, since: todayStr() }; } catch (e) { return { total: 0, n: 0, kinds: {}, since: todayStr() }; } }
+function spentAdd(u, kind) {
+  if (!u || !(u.cost > 0)) return;
+  const sp = spentLoad(); sp.total += u.cost; sp.n++;
+  if (kind) { const k = sp.kinds[kind] || (sp.kinds[kind] = { total: 0, n: 0 }); k.total += u.cost; k.n++; }
+  try { localStorage.setItem(SPENT_STORE, JSON.stringify(sp)); } catch (e) {}
+}
+function won(usd) { const w = usd * USD_KRW; return w < 1 ? "1원 미만" : "약 " + (w < 10 ? w.toFixed(1) : Math.round(w)) + "원"; }
+function costText(u) {
+  if (!u) return "";
+  const tok = u.inTok || u.outTok ? ` · 입력 ${u.inTok.toLocaleString()} / 출력 ${u.outTok.toLocaleString()} 토큰` : "";
+  return u.cost > 0 ? `💰 이번 비용 ${won(u.cost)} ($${u.cost.toFixed(4)})${tok}` : (tok ? "💰" + tok.slice(2) + " (비용 정보 없음)" : "");
+}
+function costLine(u) { return h("div", { class: "small muted cost-line", style: "margin-top:6px" }, costText(u)); }
+function addUsage(a, j) {
+  if (!j || !j.usage) return;
+  a.cost += +j.usage.cost || 0; a.inTok += j.usage.prompt_tokens || 0; a.outTok += j.usage.completion_tokens || 0;
+}
 async function aiStream(messages, onText, opts) {
   const maxTokens = (opts && opts.maxTokens) || 4000;
-  let full = "";
+  let full = ""; const usage = { cost: 0, inTok: 0, outTok: 0 };
   for (let round = 0; round < 4; round++) {
     const msgs = round === 0 ? messages : messages.concat([{ role: "assistant", content: full }, { role: "user", content: "답이 길이 제한에서 끊겼어. 끊긴 바로 다음 글자부터 이어서 써. 앞 내용은 반복하지 말고, 형식은 그대로." }]);
     const part = await aiStreamOnce(msgs, maxTokens, t => onText(full + t));
-    full += part.text;
+    full += part.text; usage.cost += part.usage.cost; usage.inTok += part.usage.inTok; usage.outTok += part.usage.outTok;
     if (part.finish !== "length") break;
     if (round === 3) { full += "\n\n⚠️ 답이 너무 길어서 잘렸어요. 다시 만들기(또는 다시 묻기)를 눌러 주세요."; onText(full); }
   }
+  aiStream.last = usage; spentAdd(usage, opts && opts.kind);
   if (!full.trim()) throw new Error("AI가 빈 답을 보냈어요. 다시 해 주세요.");
   return full;
 }
@@ -1325,13 +1347,13 @@ async function aiStreamOnce(messages, maxTokens, onText) {
   if (/^https?:/.test(location.href)) headers["HTTP-Referer"] = location.origin + location.pathname;
   let r;
   try {
-    r = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers, body: JSON.stringify({ model: AI.model, messages, stream: true, max_tokens: maxTokens }) });
+    r = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers, body: JSON.stringify({ model: AI.model, messages, stream: true, max_tokens: maxTokens, usage: { include: true } }) });
   } catch (e) { throw new Error("AI 서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요. (" + e.message + ")"); }
   if (!r.ok) {
     let msg = ""; try { const j = await r.json(); msg = (j.error && j.error.message) || ""; } catch (e) {}
     throw new Error(r.status === 401 ? "OpenRouter 키가 잘못됐어요. 기록·백업 탭에서 다시 넣어 주세요." : r.status === 402 ? "OpenRouter 크레딧이 부족해요." : r.status === 429 ? "요청이 너무 잦아요. 잠깐 뒤에 다시 해 주세요." : "OpenRouter 오류 " + r.status + (msg ? ": " + msg : ""));
   }
-  const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = "", full = "", finish = "";
+  const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = "", full = "", finish = ""; const usage = { cost: 0, inTok: 0, outTok: 0 };
   for (;;) {
     const { value, done } = await reader.read(); if (done) break;
     buf += dec.decode(value, { stream: true });
@@ -1343,6 +1365,7 @@ async function aiStreamOnce(messages, maxTokens, onText) {
       try {
         const j = JSON.parse(data);
         if (j.error) throw new Error(j.error.message || "OpenRouter 오류");
+        addUsage(usage, j);
         const c0 = j.choices && j.choices[0];
         if (c0 && c0.finish_reason) finish = c0.finish_reason;
         const d = c0 && c0.delta && c0.delta.content;
@@ -1350,7 +1373,7 @@ async function aiStreamOnce(messages, maxTokens, onText) {
       } catch (e) { if (e.message && !/JSON/.test(e.message)) throw e; }
     }
   }
-  return { text: full, finish };
+  return { text: full, finish, usage };
 }
 // 굵게·목록·코드만 그려요 (나머지는 그대로 글자)
 function mdLite(text) {
@@ -1398,7 +1421,8 @@ function aiThread(firstUserMsg, opts) {
     box.insertBefore(out, follow);
     follow.classList.add("hidden");
     try {
-      const full = await aiStream(msgs, t => { out.innerHTML = mdLite(t); });
+      const full = await aiStream(msgs, t => { out.innerHTML = mdLite(t); }, { kind: "ask" });
+      if (aiStream.last) out.append(costLine(aiStream.last));
       if (!full) out.innerHTML = "<span class=\"muted small\">빈 답이 왔어요. 다시 물어봐 주세요.</span>";
       msgs.push({ role: "assistant", content: full }); answers.push(full);
       if (opts.onAnswer) opts.onAnswer(answers);
@@ -1448,6 +1472,12 @@ function aiCard() {
             h("li", {}, "아래에 붙여 넣고 저장")),
           h("div", { class: "row" }, key, h("button", { class: "btn", onclick: async () => { const v = key.value.trim(); if (!v) { alertBox("키를 붙여 넣어 주세요."); return; } AI.key = v; aiSave(); render(); } }, "저장"))),
     h("div", { class: "row", style: "margin-top:10px" }, h("span", { class: "small muted" }, "모델"), sel),
+    (() => { const sp = spentLoad(); const k = sp.kinds.summary; const line = h("p", { class: "small", style: "margin-top:8px" },
+      h("b", {}, `💰 지금까지 AI 비용 ${sp.total > 0 ? won(sp.total) + " ($" + sp.total.toFixed(3) + ")" : "0원"}`), ` · ${sp.n}번 · ${fmtDate(sp.since)}부터`,
+      k && k.n ? ` · 총정리 한 번 평균 ${won(k.total / k.n)}` : "", " ",
+      h("button", { class: "btn ghost small", onclick: () => { try { localStorage.removeItem(SPENT_STORE); } catch (e) {} render(); } }, "0으로"));
+      return line; })(),
+    h("p", { class: "small muted" }, `원 표시는 1달러 = ${USD_KRW.toLocaleString()}원으로 계산한 대략값이에요. 정확한 청구액은 OpenRouter 사이트의 Activity에서 봐요.`),
     h("p", { class: "small muted", style: "margin-top:8px" }, "키는 이 브라우저에만 저장돼요. GitHub(Gist) 동기화에도 올라가지 않아서, 폰·다른 브라우저에서는 한 번 더 넣어야 해요. 답은 틀릴 수 있으니 분류·숫자·법 조항은 교재로 확인하세요."));
 }
 
@@ -1458,11 +1488,12 @@ async function aiJSON(prompt, maxTokens) {
   if (/^https?:/.test(location.href)) headers["HTTP-Referer"] = location.origin + location.pathname;
   let r;
   try {
-    r = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers, body: JSON.stringify({ model: AI.model, max_tokens: maxTokens || 3000,
+    r = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers, body: JSON.stringify({ model: AI.model, max_tokens: maxTokens || 3000, usage: { include: true },
       messages: [{ role: "system", content: AI_SYSTEM + " 이번 답은 반드시 JSON 하나만 출력해. 설명 문장이나 ``` 없이." }, { role: "user", content: prompt }] }) });
   } catch (e) { throw new Error("AI 서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요. (" + e.message + ")"); }
   if (!r.ok) { let m = ""; try { m = ((await r.json()).error || {}).message || ""; } catch (e) {} throw new Error(r.status === 401 ? "OpenRouter 키가 잘못됐어요." : r.status === 402 ? "OpenRouter 크레딧이 부족해요." : "OpenRouter 오류 " + r.status + (m ? ": " + m : "")); }
   const j = await r.json();
+  { const u = { cost: 0, inTok: 0, outTok: 0 }; addUsage(u, j); aiJSON.last = u; spentAdd(u, "json"); }
   const txt = (((j.choices || [])[0] || {}).message || {}).content || "";
   const a = txt.indexOf("{"), z = txt.lastIndexOf("}");
   if (a < 0 || z < a) throw new Error("AI 답을 읽지 못했어요. 다시 해 주세요.");
@@ -1628,16 +1659,20 @@ ${g ? "[방금 인출에서 틀린 칸]\n" + (misses || "없음 (다 맞음)") +
 **키워드 점검** — 학생 키워드 중 틀렸거나 애매한 것, 실기에 자주 나오는데 빠진 핵심이 있으면 1줄씩 (없으면 "괜찮아요"). 확실하지 않으면 "교재 확인".
 ${g ? "**방금 틀린 칸** — 칸마다 무엇을 놓쳤는지와 기억 요령 1줄 (없으면 생략)." : "**인출 대비 기억 요령** — 헷갈리기 쉬운 칸 3 ~ 5개를 골라 칸마다 외우는 요령 1줄 (앞글자 따기, 비유, 숫자 묶기 등)."}
 **실기 답안 문장** — 이 블록이 서술형으로 나오면 그대로 쓸 수 있는 핵심 문장 2 ~ 3개.
-지도에 없는 숫자·명령어 옵션·법 조항을 지어내지 마.` }], t => { body.innerHTML = mdLite(t); }, { maxTokens: 8000 });
-      setNote(key, { sig, text: full });
+지도에 없는 숫자·명령어 옵션·법 조항을 지어내지 마.` }], t => { body.innerHTML = mdLite(t); }, { maxTokens: 8000, kind: "summary" });
+      setNote(key, { sig, text: full, usage: aiStream.last });
+      costEl.replaceChildren(costLine(aiStream.last));
       when.textContent = "방금 만듦"; if (btn) btn.textContent = "다시 만들기";
     } catch (e) { body.innerHTML = ""; body.append(h("span", { style: "color:var(--bad)" }, "⚠️ " + e.message)); }
   };
   const btn = aiOn() ? h("button", { class: "btn ghost small", onclick: run }, saved ? "다시 만들기" : "만들기") : null;
   when.textContent = saved ? (saved.sig === sig ? "저장된 정리" : "지도·키워드가 바뀌었어요 · 다시 만들 수 있어요") : "";
+  const costEl = h("div");
+  if (saved && saved.usage) costEl.append(costLine(saved.usage));
+  else { const k = spentLoad().kinds.summary; if (k && k.n) costEl.append(h("div", { class: "small muted", style: "margin-top:6px" }, `💰 총정리 한 번 평균 ${won(k.total / k.n)} (지금까지 ${k.n}번)`)); }
   box.append(h("div", { class: "row", style: "justify-content:space-between" }, h("h2", { style: "margin:0" }, "🧾 이 블록 총정리"), h("div", { class: "row" }, when, btn)),
     h("p", { class: "small muted", style: "margin:4px 0 8px" }, g ? "내 지도·키워드·방금 틀린 칸을 보고 AI가 정리했어요. 교재가 기준이에요." : "내 지도·키워드를 보고 AI가 정리했어요. 교재가 기준이에요."),
-    body);
+    body, costEl);
   if (!aiOn()) body.append(h("span", { class: "small muted" }, "기록·백업 탭에서 OpenRouter 키를 넣으면 AI가 이 블록을 정리해 줘요."));
   else if (saved && saved.text && saved.sig === sig && !/길이 제한에서 잘렸어요|너무 길어서 잘렸어요/.test(saved.text)) body.innerHTML = mdLite(saved.text);
   else setTimeout(run, 0);   // 채점하면 알아서 만들어요 (지도·키워드가 그대로면 저장된 걸 보여 줘요)
@@ -1676,16 +1711,18 @@ ${secM}
 **제목별 미리보기** — 지도의 들여쓰기를 그대로 살린 중첩 목록으로 써 (단계마다 공백 2칸 들여쓰고 "- "로 시작, 큰 제목도 한 줄씩 넣어서 어디 밑인지 보이게). 가장 작은 제목·보안멘토·주석마다 "이게 뭐고 왜 나오는지"를 쉬운 말로 1줄. 섹션 보안멘토가 짚은 포인트가 어떤 제목에 해당하면, 그 제목 바로 아랫줄에 한 단계 더 들여써서 "- 💡 섹션 보안멘토: …"로 따로 1 ~ 2줄 써 줘 (같은 줄에 붙이지 마).
 **먼저 알아둘 말** — 본문에 나올 어려운 용어 4 ~ 6개, 각각 "용어 = 쉬운 뜻" 한 줄.
 **읽으면서 찾을 것** — 실기(단답·서술·실무)에 잘 나오는 포인트를 질문 3개로 (답은 쓰지 마).
-지도에 없는 세부 내용·숫자·명령어 옵션은 지어내지 말고, 확실하지 않으면 "본문에서 확인"이라고 써.` }], t => { body.innerHTML = mdLite(t); });
-      setNote(key, { sig, text: full });
+지도에 없는 세부 내용·숫자·명령어 옵션은 지어내지 말고, 확실하지 않으면 "본문에서 확인"이라고 써.` }], t => { body.innerHTML = mdLite(t); }, { kind: "preview" });
+      setNote(key, { sig, text: full, usage: aiStream.last });
+      costEl.replaceChildren(costLine(aiStream.last));
       when.textContent = secM ? "방금 만듦 · 같은 섹션 보안멘토도 참고" : "방금 만듦"; if (btn) btn.textContent = "다시 만들기";
     } catch (e) { body.innerHTML = ""; body.append(h("span", { style: "color:var(--bad)" }, "⚠️ " + e.message)); }
   };
   const btn = aiOn() ? h("button", { class: "btn ghost small", onclick: run }, saved ? "다시 만들기" : "만들기") : null;
   when.textContent = saved ? (saved.sig === sig ? (secM ? "같은 섹션 보안멘토도 참고했어요" : "") : "구조나 섹션 보안멘토가 바뀌었어요 · 다시 만들 수 있어요") : "";
+  const costEl = h("div"); if (saved && saved.usage) costEl.append(costLine(saved.usage));
   box.append(h("summary", {}, h("b", {}, "🧭 읽기 전 길잡이"), h("span", { class: "small muted" }, "  내 지도를 보고 AI가 쉽게 큰 그림을 잡아 줘요 (3분)")),
     h("div", { class: "row", style: "justify-content:space-between;margin-top:6px" }, when, btn),
-    body,
+    body, costEl,
     h("p", { class: "small muted", style: "margin-top:8px" }, "길잡이는 제목만 보고 만든 거라 교재와 다를 수 있어요. 본문이 기준이에요. 읽다가 막히면 그 칸의 ❓로 물어봐요."));
   if (!aiOn()) body.append(h("span", { class: "small muted" }, "기록·백업 탭에서 OpenRouter 키를 넣으면, 읽기 전에 AI가 이 블록의 큰 그림을 쉽게 설명해 줘요."));
   else if (saved && saved.text && saved.text.length > 200 && !/길이 제한에서 잘렸어요|너무 길어서 잘렸어요/.test(saved.text)) body.innerHTML = mdLite(saved.text);   // 잘린 길잡이는 다시 만들어요
