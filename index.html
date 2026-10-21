@@ -577,7 +577,7 @@ const BLOCKS = [
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.22-2";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.22-3";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-29": ["2회독 1일차", "오전 30분 1회독 약점 목록(기록·백업 → 자주 틀린 칸) → 단답형 뒤 절반 전부(시스템 → 네트워크 → 애플리케이션 → 침해사고 → 일반 → 관리/법규) + ☆ 문제, 빠르게"],
@@ -1345,7 +1345,22 @@ function costText(u) {
   const tok = u.inTok || u.outTok ? ` · 입력 ${u.inTok.toLocaleString()} / 출력 ${u.outTok.toLocaleString()} 토큰` : "";
   return u.cost > 0 ? `💰 이번 비용 ${won(u.cost)} ($${u.cost.toFixed(4)})${tok}` : (tok ? "💰" + tok.slice(2) + " (비용 정보 없음)" : "");
 }
-function costLine(u) { return h("div", { class: "small muted cost-line", style: "margin-top:6px" }, costText(u)); }
+let creditCache = null;
+function creditLeft() {
+  if (!AI.key) return Promise.resolve(null);
+  if (creditCache && Date.now() - creditCache.t < 10000) return creditCache.p;
+  const p = fetch("https://openrouter.ai/api/v1/credits", { headers: { "Authorization": "Bearer " + AI.key } })
+    .then(r => r.ok ? r.json() : null).then(j => j && j.data && j.data.total_credits != null ? j.data.total_credits - (j.data.total_usage || 0) : null).catch(() => null);
+  creditCache = { t: Date.now(), p };
+  return p;
+}
+function costLine(u) {
+  const el = h("div", { class: "small muted cost-line", style: "margin-top:6px" }, costText(u));
+  const left = h("span");
+  el.append(left);
+  creditLeft().then(v => { if (v != null) left.textContent = ` · 💳 남은 크레딧 $${v.toFixed(2)} (${won(v)})`; });
+  return el;
+}
 function addUsage(a, j) {
   if (!j || !j.usage) return;
   a.cost += +j.usage.cost || 0; a.inTok += j.usage.prompt_tokens || 0; a.outTok += j.usage.completion_tokens || 0;
