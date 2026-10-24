@@ -678,7 +678,7 @@ const BLOCKS = [
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.23-1";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.24-1";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-23": ["1회독 1일차 · 17시 넘어 시작", "오늘은 B1~B4만 (4시간 51분). 저녁은 30분 안에, 퀴즈·단답은 없어요. 23:10 넘으면 B4는 ④ 인출만 하고 끝"],
@@ -747,6 +747,16 @@ function addDays(s, n) { const d = new Date(s + "T00:00:00"); d.setDate(d.getDat
 function fmtDate(s) { if (!s) return ""; const d = new Date(s + "T00:00:00"); return (d.getMonth()+1) + "." + String(d.getDate()).padStart(2,"0") + "(" + "일월화수목금토"[d.getDay()] + ")"; }
 function dday() { return Math.round((new Date(EXAM_DATE+"T00:00:00") - new Date(todayStr()+"T00:00:00")) / 86400000); }
 function danHalf(b) { const [a, z] = b.dan; const mid = a + Math.floor((z - a) / 2); return `p.${a}~${mid}`; }
+// 1회독 저녁 서술·실무 기출 (문제편 = 과목별 기출문제집): 그날 블록이 끝낸 PART의 서술 2 + 실무 1
+const ESSAY = {
+  "PART 1 시스템": "시스템 서술 p.80~99 · 실무 p.100~137",
+  "PART 2 네트워크": "네트워크 서술 p.226~283 · 실무 p.284~311",
+  "PART 3 애플리케이션": "애플리케이션 서술 p.388~417 · 실무 p.418~449",
+  "PART 4 침해사고": "침해사고 서술 p.525~549 · 실무 p.550~583",
+  "PART 5 관리": "일반 서술 p.600~604 · 실무 p.605~609",
+  "PART 6 법규": "관리/법규 서술 p.687~703 · 실무 p.704~721",
+};
+function essayFor(bs) { if (!bs.length || bs[0].date === "2026-10-23") return ""; const parts = [...new Set(bs.map(b => b.part))]; const long = bs.reduce((x, b) => x + blockMin(b), 0) > 630; return (long ? "서술 1 + 실무 1 (30분)" : "서술 2 + 실무 1 (45분)") + " — " + parts.map(p => ESSAY[p]).join(" / ") + " 중 오늘 블록 주제"; }
 function alertBox(msg) { const m = $("#msg"); if (m) { m.textContent = msg; m.classList.remove("hidden"); } else console.log(msg); }
 function blockProgress(id) {
   const d = S.blocks[id] || {};
@@ -992,7 +1002,7 @@ function viewNotes(main) {
 
 // ───────── 전체 일정: 회독 흐름 + 날짜별 할 일 ─────────
 const PHASES = [
-  ["1회독", "2026-10-23", "2026-10-29", "구조와 키워드 · 이론편 전체(B1~B50) + 단답형 앞 절반 (10.23은 저녁부터)"],
+  ["1회독", "2026-10-23", "2026-10-29", "구조와 키워드 · 이론편 전체(B1~B50) + 기출 단답 앞 절반 + 그날 PART 서술·실무 기출 3문제/일 (10.23은 저녁부터)"],
   ["2회독", "2026-10-30", "2026-11-04", "키워드를 문장으로 · 단답형 나머지 → 서술형·실무형 답안 타이핑"],
   ["3회독", "2026-11-05", "2026-11-07", "빠른 회독 · PART별 지도 인출 → 틀린 칸만 이론편 + 명령어 요약"],
   ["4회독", "2026-11-08", "2026-11-13", "실전 · 모의고사 3회(11.08·11.10·11.12) + 정리 모음 훑기"],
@@ -1020,7 +1030,8 @@ function viewPlan(main) {
       body.append(h("div", {}, h("b", {}, `${bs[0].id} ~ ${bs[bs.length - 1].id}`), h("span", { class: "small muted" }, ` · 이론 ${pages}쪽 · 블록 ${fmtMin(mins)} · ${dn}/${bs.length} 완료`)),
         h("div", { class: "bl" }, bs.map(b => h("button", { class: isDone(b.id) ? "done" : "", title: b.title, onclick: () => { studyId = b.id; studyStep = 0; timerSet(0); go("study"); } },
           (isDone(b.id) ? "✓ " : "") + b.id + " " + b.title.replace(/^(★\s*)?S\d+\s*·?\s*/, (m, star) => star ? "★" : "")))),
-        h("div", { class: "small muted", style: "margin-top:4px" }, "저녁: 퀴즈 40분 + 단답 " + bs.map(danHalf).join(", ")));
+        h("div", { class: "small muted", style: "margin-top:4px" }, "저녁: 퀴즈 40분 + 기출 단답 " + bs.map(danHalf).join(", ")),
+        essayFor(bs) ? h("div", { class: "small muted" }, "기출 " + essayFor(bs)) : "");
     }
     if (PLAN[d]) body.append(h("div", {}, h("b", {}, PLAN[d][0]), " · ", PLAN[d][1]));
     if (d === "2026-10-26") body.append(h("div", { class: "small", style: "color:var(--warn);margin-top:4px" }, "⚠️ 확인 지점: 이날 밤까지 B27"));
@@ -1079,7 +1090,9 @@ function viewToday(main) {
       h("div", { style: "flex:1" }, h("b", {}, "저녁 퀴즈"), h("div", { class: "small muted" }, "오늘 칸과 어휘를 섞어서 떠올리기 (1시간)")),
       h("button", { class: "btn ghost small", onclick: () => { Q = null; go("quiz"); } }, "열기")));
     tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "19:30"),
-      h("div", { style: "flex:1" }, h("b", {}, "단답형 (문제편)"), h("div", { class: "small muted" }, todays.map(b => `${b.id} ${danHalf(b)}`).join(" · ") + " — 배정량의 앞 절반"))));
+      h("div", { style: "flex:1" }, h("b", {}, "기출 단답형 (문제편)"), h("div", { class: "small muted" }, todays.map(b => `${b.id} ${danHalf(b)}`).join(" · ") + " — 배정량의 앞 절반 (45분)"))));
+    if (essayFor(todays)) tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "20:15"),
+      h("div", { style: "flex:1" }, h("b", {}, "기출 서술·실무 (문제편)"), h("div", { class: "small muted" }, essayFor(todays) + " · 문제 읽기 → 책 덮고 답 뼈대 키워드 5분 → 해설과 네 칸 비교 5분 → 빠진 칸 지도에 추가"))));
     tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "끝"),
       h("div", { style: "flex:1" }, h("b", {}, syncOn() ? "동기화 확인" : "백업 내보내기"), h("div", { class: "small muted" }, syncOn() ? "위쪽에 ☁ 동기화됨이 떠 있으면 끝" : "기록·백업 → 백업 내보내기 (동기화를 켜면 필요 없어요)")),
       h("button", { class: "btn ghost small", onclick: () => go("records") }, "열기")));
@@ -2775,7 +2788,8 @@ function viewHelp(main) {
       h("li", {}, "07:00 ", h("b", {}, "아침 복습"), " 30분: 어제 블록 지도를 다시 채워요."),
       h("li", {}, "07:30 ~ ", h("b", {}, "오늘 블록을 순서대로"), " 약 8시간 (\"오늘\" 탭에 블록별 시간이 나와요)"),
       h("li", {}, "블록 끝나면 ", h("b", {}, "저녁 퀴즈"), " 40분: 오늘 칸들을 섞어서 키워드를 떠올려요."),
-      h("li", {}, "그다음 ", h("b", {}, "단답형"), " 1시간 30분: 문제편 (\"오늘\" 탭에 쪽수가 나와요) · 23:30 취침"),
+      h("li", {}, "그다음 ", h("b", {}, "기출 단답형"), " 45분: 문제편 앞 절반 (\"오늘\" 탭에 쪽수가 나와요)"),
+      h("li", {}, "그다음 ", h("b", {}, "기출 서술·실무"), " 45분: 오늘 PART 서술 2 + 실무 1 — 책 덮고 답 뼈대 → 해설과 네 칸 비교 (문제편 = 과목별 기출문제집) · 23:30 취침"),
       h("li", {}, "하루 끝: ", h("b", {}, "기록·백업 → 백업 내보내기"))),
     h("h3", {}, "모르는 말이 나오면 (② 읽기 → ❓ 모르는 말 바로 묻기)"),
     h("ol", {},
