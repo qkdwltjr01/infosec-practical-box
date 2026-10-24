@@ -610,6 +610,7 @@ th { white-space: nowrap; }
     <button data-view="notes">정리 모음</button>
     <button data-view="morning">아침 복습</button>
     <button data-view="quiz">저녁 퀴즈</button>
+    <button data-view="past">기출 노트</button>
     <button data-view="glossary">어휘장</button>
     <button data-view="pairs">헷갈리는 쌍</button>
     <button data-view="records">기록·백업</button>
@@ -678,7 +679,7 @@ const BLOCKS = [
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.24-2";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.24-3";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-24": ["1회독 1일차 · 14시 시작 (10.23 못 함)", "오늘은 B1~B6만 (7시간 35분). 저녁은 30분 안에, 퀴즈 40분만, 기출 없음 (B1~B6 단답은 10.30에). 23:00 넘으면 B6는 ④ 인출만 하고 끝"],
@@ -714,8 +715,8 @@ const STEPS = [
 // ───────── 저장 ─────────
 const KEY = "infosec-practical-v1";
 function load() {
-  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.blocks) { s.glossary = s.glossary || []; return s; } } catch (e) {}
-  return { blocks: {}, nodeStats: {}, pairs: [], glossary: [], lastBackup: null };
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.blocks) { s.glossary = s.glossary || []; s.past = s.past || []; return s; } } catch (e) {}
+  return { blocks: {}, nodeStats: {}, pairs: [], glossary: [], past: [], lastBackup: null };
 }
 let S = load();
 function save() { S.updatedAt = Date.now(); if (typeof syncSoon === "function") syncSoon(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { alertBox("저장에 실패했어요. 백업을 내보내 두세요."); } }
@@ -726,6 +727,7 @@ function normalizeState(s) {
   s.blocks = s.blocks || {}; s.nodeStats = s.nodeStats || {}; s.pairs = s.pairs || []; s.glossary = s.glossary || []; s.tomb = s.tomb || {}; s.notes = s.notes || {};
   s.pairs.forEach(p => { if (!p.id) p.id = newId(); });
   s.glossary.forEach(g => { if (!g.id) g.id = newId(); if (!g.u) g.u = 0; });
+  s.past = s.past || []; s.past.forEach(e => { if (!e.id) e.id = newId(); if (!e.u) e.u = 0; if (!e.retry) e.retry = []; });
   return s;
 }
 normalizeState(S);
@@ -921,7 +923,7 @@ function render() {
   document.body.classList.remove("drawer-on");
   const main = $("#main"); main.innerHTML = "";
   main.append(h("div", { id: "msg", class: "card hidden" }));
-  ({ today: viewToday, plan: viewPlan, study: viewStudy, morning: viewMorning, notes: viewNotes, quiz: viewQuiz, glossary: viewGlossary, pairs: viewPairs, records: viewRecords, help: viewHelp })[view](main);
+  ({ today: viewToday, plan: viewPlan, study: viewStudy, morning: viewMorning, notes: viewNotes, quiz: viewQuiz, past: viewPast, glossary: viewGlossary, pairs: viewPairs, records: viewRecords, help: viewHelp })[view](main);
   paintTimer();
 }
 
@@ -1092,7 +1094,8 @@ function viewToday(main) {
     tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "19:30"),
       h("div", { style: "flex:1" }, h("b", {}, "기출 단답형 (문제편)"), h("div", { class: "small muted" }, todays.map(b => `${b.id} ${danHalf(b)}`).join(" · ") + " — 배정량의 앞 절반 (30분)"))));
     if (essayFor(todays)) tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "20:15"),
-      h("div", { style: "flex:1" }, h("b", {}, "기출 서술·실무 (문제편)"), h("div", { class: "small muted" }, essayFor(todays) + " · 문제 읽기 → 책 덮고 답 뼈대 키워드 5분 → 해설과 네 칸 비교 5분 → 빠진 칸 지도에 추가"))));
+      h("div", { style: "flex:1" }, h("b", {}, "기출 서술·실무 (문제편)"), h("div", { class: "small muted" }, essayFor(todays) + " · 문제 읽기 → 책 덮고 답 뼈대 키워드 5분 → 해설과 네 칸 비교 5분 → 빠진 칸 지도에 추가. 문제·내 답·해설은 기출 노트에 저장하고 AI 정리를 받아요")),
+      h("button", { class: "btn ghost small", onclick: () => go("past") }, "기출 노트")));
     tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "끝"),
       h("div", { style: "flex:1" }, h("b", {}, syncOn() ? "동기화 확인" : "백업 내보내기"), h("div", { class: "small muted" }, syncOn() ? "위쪽에 ☁ 동기화됨이 떠 있으면 끝" : "기록·백업 → 백업 내보내기 (동기화를 켜면 필요 없어요)")),
       h("button", { class: "btn ghost small", onclick: () => go("records") }, "열기")));
@@ -2608,7 +2611,7 @@ function setSyncStatus(state, msg) { syncStatus = { state, msg: msg || "", at: s
 // 병합: 통째로 덮어쓰지 않고 항목마다 합쳐요 (여러 번 돌려도 결과가 같아요)
 function mergeStates(A, B) {
   A = normalizeState(JSON.parse(JSON.stringify(A || {}))); B = normalizeState(JSON.parse(JSON.stringify(B || {})));
-  const out = { blocks: {}, nodeStats: {}, pairs: [], glossary: [], tomb: {}, notes: {} };
+  const out = { blocks: {}, nodeStats: {}, pairs: [], glossary: [], past: [], tomb: {}, notes: {} };
   for (const t of [A.tomb, B.tomb]) for (const k in t) out.tomb[k] = Math.max(out.tomb[k] || 0, +t[k] || 0);
   // 블록: 지도·키워드는 마지막으로 고친 쪽, 인출 기록은 합집합
   for (const id of new Set([...Object.keys(A.blocks), ...Object.keys(B.blocks)])) {
@@ -2638,6 +2641,16 @@ function mergeStates(A, B) {
     gm[g.id] = Object.assign({}, w, { known: Math.max(+o.known || 0, +g.known || 0), unknown: Math.max(+o.unknown || 0, +g.unknown || 0), u: Math.max(+o.u || 0, +g.u || 0) });
   }
   out.glossary = Object.values(gm).filter(g => !out.tomb["g:" + g.id]).sort((p, q) => (p.date || "").localeCompare(q.date || "") || (+p.u || 0) - (+q.u || 0));
+  // 기출 노트: 마지막으로 고친 쪽, 다시 써 보기 기록은 합집합
+  const qm = {};
+  for (const e of [...A.past, ...B.past]) {
+    const o = qm[e.id];
+    if (!o) { qm[e.id] = Object.assign({}, e); continue; }
+    const w = (+e.u || 0) > (+o.u || 0) ? e : o; const rs = new Set(), retry = [];
+    for (const r of [...(o.retry || []), ...(e.retry || [])]) { const k = r.date + "|" + r.ok; if (!rs.has(k)) { rs.add(k); retry.push(r); } }
+    qm[e.id] = Object.assign({}, w, { retry, u: Math.max(+o.u || 0, +e.u || 0) });
+  }
+  out.past = Object.values(qm).filter(e => !out.tomb["q:" + e.id]).sort((p, q) => (p.id || "").localeCompare(q.id || ""));
   out.notes = {};
   for (const k of new Set([...Object.keys(A.notes), ...Object.keys(B.notes)])) { const x = A.notes[k], y = B.notes[k]; out.notes[k] = !x ? y : !y ? x : ((+y.u || 0) > (+x.u || 0) ? y : x); }
   out.lastBackup = [A.lastBackup, B.lastBackup].filter(Boolean).sort().pop() || null;
@@ -2647,7 +2660,7 @@ function mergeStates(A, B) {
 
 function keepRefs(old, m) {
   for (const id in m.blocks) { const cur = old.blocks[id]; if (cur && cur !== m.blocks[id]) { Object.assign(cur, m.blocks[id]); m.blocks[id] = cur; } }
-  for (const key of ["glossary", "pairs"]) {
+  for (const key of ["glossary", "pairs", "past"]) {
     const byId = new Map((old[key] || []).filter(x => x && x.id).map(x => [x.id, x]));
     m[key] = m[key].map(x => { const cur = x && byId.get(x.id); return cur ? Object.assign(cur, x) : x; });
   }
@@ -2767,6 +2780,126 @@ function viewRecords(main) {
     h("ul", {}, weak.map(([k, s]) => h("li", {}, k.replace("::", " · "), h("span", { class: "muted small" }, `  (틀림 ${s.miss} · 맞음 ${s.hit})`))))));
 }
 
+
+// ───────── 기출 노트: 문제편(과목별 기출) 풀고 교재 해설 + AI 정리 저장 ─────────
+const PAST_PARTS = ["시스템", "네트워크", "애플리케이션", "침해사고", "정보보안 일반", "관리·법규"];
+const PAST_TYPES = ["단답", "서술", "실무"];
+let pastFilter = { part: "", type: "", only: "", q: "" };
+let pastDraft = null;   // 폼에 쓰던 내용 (탭을 옮겨도 남아요)
+let pastAIFor = null;   // 저장 직후 AI 정리를 자동으로 돌릴 항목
+function pastPrompt(e) {
+  const ctx = e.block && S.blocks[e.block] && S.blocks[e.block].outline ? blockContext([e.block]) + "\n\n---\n\n" : "";
+  return ctx + `[기출 문제] ${e.part} ${e.type}형 · 문제편 p.${e.page || "?"}${e.no ? " " + e.no + "번" : ""}\n${e.q}\n\n[내가 쓴 답 뼈대]\n${e.mine || "(안 씀 — 모르는 문제였음)"}\n\n[교재 정답·해설]\n${e.ans || "(아직 안 붙여 넣음 — 네가 아는 범위에서 답하고, 확실하지 않으면 표시해)"}\n\n` +
+    "위 자료로 아래 순서대로 정리해 줘. 교재 해설이 기준이고 해설에 없는 내용은 지어내지 마. 각 항목은 짧게.\n" +
+    "1. **네 칸 채점** — 정의 / 동작·원리 / 왜·위험 / 점검·대응 네 칸마다 ✅(있음) ⚠️(부족) ❌(빠짐)과 무엇이 빠졌는지 한 줄씩. 내 답이 비어 있으면 네 칸 다 ❌로 두고 그 칸에 들어갈 내용만 적어.\n" +
+    `2. **실기 답안 뼈대** — 시험지에 그대로 쓸 수 있게 ${e.type === "단답" ? "정답 한 줄 + 왜 그게 답인지 한 줄" : "3 ~ 5줄 (채점자가 찾는 핵심어는 굵게)"}.\n` +
+    "3. **이론 연결** — 이 문제가 이론편의 어느 개념에서 나왔는지, 그 개념을 뭐야 → 어떻게 → 왜 순서로 쉬운 말로 3 ~ 5줄. 내 지도 키워드가 있으면 그 칸 이름을 같이 적어.\n" +
+    "4. **헷갈리기 쉬운 것** — 비슷한 개념 하나와 차이 한 줄.\n" +
+    "5. **변형 출제** — 같은 개념을 다른 식으로 묻는 문제 1개와 답 한 줄.\n" +
+    "6. **외울 것 한 줄** — 숫자·명령어·옵션·조항이 있으면 그걸로.";
+}
+function pastWrong(e) { const r = e.retry || []; return r.length ? !r[r.length - 1].ok : !!(e.ai && /❌/.test(e.ai)); }
+function pastList(f) {
+  const qq = (f.q || "").toLowerCase();
+  return S.past.filter(e => (!f.part || e.part === f.part) && (!f.type || e.type === f.type) &&
+    (f.only !== "today" || e.date === todayStr()) && (f.only !== "wrong" || pastWrong(e)) && (f.only !== "star" || e.star) &&
+    (!qq || [e.q, e.mine, e.ans, e.ai].join(" ").toLowerCase().includes(qq))).slice().reverse();
+}
+function pastMd(list) {
+  const L = ["# 기출 노트 · " + fmtDate(todayStr()) + " 내보냄 (" + list.length + "문제)", "", "교재: 2026 알기사 실기 문제편. 네 칸 = 정의 · 동작 · 왜/위험 · 점검/대응.", ""];
+  for (const e of list.slice().reverse()) {
+    L.push(`## ${fmtDate(e.date)} · ${e.part} ${e.type}형 · 문제편 p.${e.page || "?"}${e.no ? " " + e.no + "번" : ""}${e.block ? " · " + e.block : ""}${e.star ? " · ☆ 안 배운 주제" : ""}`);
+    L.push("", "**문제**", "", e.q, "", "**내 답 뼈대**", "", e.mine || "(안 씀)", "", "**교재 정답·해설**", "", e.ans || "(없음)", "");
+    if (e.ai) L.push("**AI 정리**", "", e.ai, "");
+    if ((e.retry || []).length) L.push("다시 써 보기: " + e.retry.map(r => fmtDate(r.date) + (r.ok ? " ✅" : " ❌")).join(", "), "");
+    L.push("---", "");
+  }
+  return L.join("\n");
+}
+function viewPast(main) {
+  const d = pastDraft || (pastDraft = { part: "시스템", type: "서술", page: "", no: "", block: "", q: "", mine: "", ans: "", star: false });
+  const bind = (el, k) => { el.addEventListener(el.type === "checkbox" ? "change" : "input", () => d[k] = el.type === "checkbox" ? el.checked : el.value); return el; };
+  const partSel = bind(h("select", {}, PAST_PARTS.map(p => h("option", { value: p, selected: d.part === p ? "" : false }, p))), "part");
+  const typeSel = bind(h("select", {}, PAST_TYPES.map(t => h("option", { value: t, selected: d.type === t ? "" : false }, t + "형"))), "type");
+  const page = bind(h("input", { type: "text", placeholder: "쪽", style: "width:64px", value: d.page }), "page");
+  const no = bind(h("input", { type: "text", placeholder: "번호", style: "width:64px", value: d.no }), "no");
+  const blockSel = bind(h("select", {}, h("option", { value: "" }, "관련 블록 (고르면 내 지도도 같이 봐요)"), BLOCKS.map(b => h("option", { value: b.id, selected: d.block === b.id ? "" : false }, `${b.id} ${b.title.replace(/^★\s*/, "").slice(0, 30)}`))), "block");
+  const q = bind(h("textarea", { placeholder: "문제 (사진 찍어 옮기기 귀찮으면 요지만 적어도 돼요)" }, d.q), "q");
+  const mine = bind(h("textarea", { placeholder: "내 답 뼈대 — 책 덮고 키워드로 5분. 모르면 비워 두고 ☆ 체크" }, d.mine), "mine");
+  const ans = bind(h("textarea", { placeholder: "교재 정답·해설 — 핵심 문장만 붙여 넣어도 돼요", style: "min-height:120px" }, d.ans), "ans");
+  const star = bind(h("input", { type: "checkbox" }), "star"); star.checked = !!d.star;
+  const submit = withAI => {
+    if (!d.q.trim()) { alertBox("문제를 적어 주세요."); return; }
+    if (withAI && !d.ans.trim() && !confirm("교재 해설 없이 AI 정리를 만들까요? 해설이 있어야 교재 기준으로 채점해요.")) return;
+    const e = { id: newId(), date: todayStr(), u: Date.now(), part: d.part, type: d.type, page: (d.page || "").trim(), no: (d.no || "").trim(), block: d.block, q: d.q.trim(), mine: (d.mine || "").trim(), ans: (d.ans || "").trim(), star: !!d.star, ai: "", retry: [] };
+    S.past.push(e); save();
+    pastDraft = { part: d.part, type: d.type, page: "", no: "", block: d.block, q: "", mine: "", ans: "", star: false };
+    if (withAI) { pastFilter = { part: "", type: "", only: "today", q: "" }; pastAIFor = e.id; }
+    render();
+  };
+  main.append(h("div", { class: "card" }, h("h2", {}, "📝 기출 노트"),
+    h("p", { class: "small" }, "문제편(= 과목별로 분류한 기출문제집)을 풀 때 써요. ", h("b", {}, "문제 → 책 덮고 내 답 뼈대 → 교재 정답·해설"), "을 붙여 넣고 저장하면 AI가 ", h("b", {}, "네 칸 채점 + 실기 답안 뼈대 + 이론 연결 + 변형 출제"), "를 만들어요. 이어서 물어볼 수도 있어요. 저장한 건 이 컴퓨터(와 동기화)에 남고, 아래에서 .md 파일로 내보내요."),
+    h("div", { class: "row" }, partSel, typeSel, page, no, blockSel),
+    h("div", { class: "small muted", style: "margin:8px 0 2px" }, "문제"), q,
+    h("div", { class: "small muted", style: "margin:8px 0 2px" }, "내 답 뼈대 (책 덮고)"), mine,
+    h("div", { class: "small muted", style: "margin:8px 0 2px" }, "교재 정답·해설"), ans,
+    h("div", { class: "row", style: "margin-top:8px" },
+      h("label", { class: "row small", style: "gap:6px;cursor:pointer" }, star, "☆ 아직 안 배운 주제"),
+      aiOn() ? h("button", { class: "btn", onclick: () => submit(true) }, "저장 + 🤖 AI 정리") : null,
+      h("button", { class: "btn ghost", onclick: () => submit(false) }, "저장만"),
+      aiOn() ? null : h("span", { class: "small muted" }, "AI 정리는 기록·백업 탭에서 키를 넣으면 켜져요"))));
+  const f = pastFilter;
+  const fsel = (k, opts) => h("select", { onchange: ev => { pastFilter[k] = ev.target.value; render(); } }, opts.map(([v, t]) => h("option", { value: v, selected: f[k] === v ? "" : false }, t)));
+  const fq = h("input", { type: "text", placeholder: "🔍 검색", style: "flex:1;min-width:120px", value: f.q });
+  let tq; fq.addEventListener("input", () => { clearTimeout(tq); tq = setTimeout(() => { pastFilter.q = fq.value.trim(); render(); }, 300); });
+  const items = pastList(f);
+  const wrong = S.past.filter(pastWrong).length;
+  main.append(h("div", { class: "card" }, h("h2", {}, `저장한 기출 (${S.past.length}문제${wrong ? " · 빠진 칸·틀림 " + wrong : ""})`),
+    h("div", { class: "row" },
+      fsel("part", [["", "전체 과목"], ...PAST_PARTS.map(p => [p, p])]), fsel("type", [["", "전체 유형"], ...PAST_TYPES.map(t => [t, t + "형"])]),
+      fsel("only", [["", "전부"], ["today", "오늘"], ["wrong", "틀린 것만"], ["star", "☆만"]]), fq,
+      h("button", { class: "btn ghost small", onclick: () => {
+        const list = pastList(pastFilter); if (!list.length) { alertBox("내보낼 기출이 없어요."); return; }
+        const url = URL.createObjectURL(new Blob(["\ufeff" + pastMd(list)], { type: "text/markdown;charset=utf-8" }));
+        const a = h("a", { href: url, download: `기출노트_${todayStr()}${f.part ? "_" + f.part : ""}.md` }); document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+        alertBox("다운로드 폴더에 .md로 저장했어요. OneDrive '일정 관리' 폴더로 옮겨 두면 Claude Code에서 바로 읽을 수 있어요.");
+      } }, "📄 .md로 내보내기")),
+    items.length ? null : h("p", { class: "muted", style: "margin-top:8px" }, S.past.length ? "조건에 맞는 기출이 없어요." : "아직 저장한 기출이 없어요. 위에서 첫 문제를 넣어 보세요.")));
+  for (const e of items) main.append(pastCard(e));
+}
+function pastCard(e) {
+  const det = h("details", { class: "card nb" });
+  const last = (e.retry || []).slice(-1)[0];
+  det.append(h("summary", { class: "nb-sum" },
+    h("span", { class: "nb-id" + (last && last.ok ? " done" : "") }, e.type),
+    h("div", { class: "nb-main" }, h("div", { class: "nb-title" }, e.q.split("\n")[0].slice(0, 70)),
+      h("div", { class: "nb-meta" }, `${fmtDate(e.date)} · ${e.part} · 문제편 p.${e.page || "?"}${e.no ? " " + e.no + "번" : ""}${e.block ? " · " + e.block : ""}`)),
+    h("div", { class: "nb-chips" }, e.star ? h("span", { class: "chip warn" }, "☆") : null, e.ai ? h("span", { class: "chip ok" }, "AI 정리") : null,
+      last ? h("span", { class: "chip " + (last.ok ? "ok" : "bad") }, "다시 " + (last.ok ? "✅" : "❌")) : pastWrong(e) ? h("span", { class: "chip bad" }, "빠진 칸") : null),
+    h("span", { class: "nb-caret", "aria-hidden": "true" }, "›")));
+  const sec = (title, el, open) => { const x = h("details", { class: "nb-sec" }, h("summary", {}, title), h("div", { class: "nb-body" }, el)); x.open = !!open; return x; };
+  const pre = t => h("div", { style: "white-space:pre-wrap" }, t);
+  const inner = h("div", { class: "nb-inner" });
+  inner.append(sec("문제", pre(e.q), true), sec("내 답 뼈대", pre(e.mine || "(안 씀)"), false), sec("교재 정답·해설", pre(e.ans || "(없음)"), false));
+  const aiBox = h("div");
+  if (e.ai) aiBox.append(sec("🤖 AI 정리", aiDiv(e.ai), true));
+  inner.append(aiBox);
+  const runAI = btn => {
+    if (btn) btn.disabled = true;
+    const th = aiThread(pastPrompt(e), { block: e.block || undefined, onAnswer: ans => { e.ai = ans.join("\n\n---\n\n"); e.u = Date.now(); save(); } });
+    aiBox.replaceChildren(sec("🤖 AI 정리", th, true));
+  };
+  const mark = ok => { e.retry = e.retry || []; e.retry.push({ date: todayStr(), ok }); e.u = Date.now(); save(); render(); };
+  inner.append(h("div", { class: "nb-actions" },
+    aiOn() ? h("button", { class: "btn small", onclick: ev => runAI(ev.target) }, e.ai ? "🤖 다시 정리 · 이어서 묻기" : "🤖 AI 정리 만들기") : null,
+    h("button", { class: "btn ghost small", onclick: () => mark(true) }, "다시 써 봤다 ✅ 맞음"),
+    h("button", { class: "btn ghost small", onclick: () => mark(false) }, "❌ 또 틀림"),
+    h("button", { class: "btn ghost small", onclick: () => { if (!confirm("이 기출 기록을 지울까요?")) return; S.past = S.past.filter(x => x !== e); S.tomb["q:" + e.id] = Date.now(); save(); render(); } }, "삭제")));
+  det.append(inner);
+  if (pastAIFor === e.id) { det.open = true; pastAIFor = null; setTimeout(() => runAI(null), 0); }
+  return det;
+}
+
 // ───────── 사용법 ─────────
 function viewHelp(main) {
   main.append(h("div", { class: "card" }, h("h2", {}, "사용법"),
@@ -2783,6 +2916,11 @@ function viewHelp(main) {
       h("li", {}, h("b", {}, "③ 정리 공부 쪽수 × 0.5분 (최소 3분)"), ": 내 키워드로 AI가 만든 총정리를 읽고 칸마다 뭐야·어떻게·왜를 속으로 말해 봐요."),
       h("li", {}, h("b", {}, "④ 인출 쪽수 × 1분 (최소 8분)"), ": 책을 덮고 빈 지도에 키워드를 다시 써요 → 채점 → 빠진 칸만 책에서 확인해요."),
       h("li", {}, h("b", {}, "⑤ 휴식 5분"))),
+    h("h3", {}, "기출 노트 (문제편 = 과목별 기출문제집)"),
+    h("ul", {},
+      h("li", {}, "저녁 기출을 풀 때 ", h("b", {}, "문제 → 책 덮고 내 답 뼈대 → 교재 정답·해설"), "을 붙여 넣고 ", h("b", {}, "저장 + 🤖 AI 정리"), ". 네 칸(정의·동작·왜·대응) 채점, 실기 답안 뼈대, 이론 연결, 헷갈리는 것, 변형 출제, 외울 것 한 줄이 나와요. 아래 칸에서 이어서 물어볼 수 있어요."),
+      h("li", {}, "관련 블록을 고르면 AI가 내 지도·키워드를 같이 보고 설명해요. 모르는 문제는 ", h("b", {}, "☆"), " 체크하고 비워 둔 채 저장해도 돼요."),
+      h("li", {}, "2회독·3회독에 ", h("b", {}, "\"틀린 것만\""), "으로 걸러서 다시 써 보고 ✅/❌를 남겨요. 기록은 이 컴퓨터(와 동기화)에 저장되고, ", h("b", {}, ".md로 내보내기"), "로 파일로도 남겨요. 내보낸 파일을 OneDrive \"일정 관리\" 폴더에 두면 Claude Code에서 바로 읽고 같이 정리할 수 있어요.")),
     h("h3", {}, "하루"),
     h("ul", {},
       h("li", {}, "07:00 ", h("b", {}, "아침 복습"), " 30분: 어제 블록 지도를 다시 채워요."),
