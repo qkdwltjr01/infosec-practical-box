@@ -782,22 +782,21 @@ function wrongRow(date) {
   return taskRow(date, "w", "", "기출 오답 다시 쓰기 · 30분", "기출 노트 '틀린 것만'에서 2 ~ 3문제를 책 덮고 다시 타이핑 → AI 정리와 비교 → ✅/❌", h("button", { class: "btn ghost small", onclick: () => go("past") }, "기출 노트"));
 }
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.24-12";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.24-13";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 날짜별 안내 (자세한 건 일별계획.md)
 const PLAN = {
-  "2026-10-24": ["1회독 1일차 · 14시 시작 (10.23 못 함)", "오늘은 B1~B6만 (6시간 15분, 속도 조정 뒤). 저녁은 30분 안에, 기출 없음 (B1~B6 단답은 내일 시스템 단답에 포함). 끝나면 내일 B7 ① 구조를 미리 만들어 둬요. 23:00 넘으면 B6는 ④ 인출만 하고 끝"],
+  "2026-10-24": ["1회독 1일차 · 14시 시작 (10.23 못 함)", "오늘은 B1~B6만 (4시간 58분 · 블록은 구조·읽기·정리만, 인출 없음). 저녁은 30분 안에, 기출 없음 (B1~B6 단답은 내일 시스템 단답에 포함). 끝나면 내일 B7 ① 구조를 미리 만들어 둬요. 23:00 넘으면 B6는 ★만 읽고 끝"],
   "2026-11-14": ["🔐 시험", "정보보안기사 실기 (신분증 · 수험표 · 검은 볼펜)"],
 };
 const readRate = b => b && /훑기/.test(b.title) ? 1.5 : 2.0;   // 쪽당 읽기 분 (훑기 블록은 1.5분). 10.24 밤 개정: 2.5 → 2.0
-function stepMins(b) { if (b && /30분 훑기/.test(b.title)) return [5, 10, 5, 8, 2]; const p = b ? b.pn : 20; return [p < 10 ? 5 : 10, Math.round(p * readRate(b)), Math.max(3, Math.round(p * 0.3)), Math.max(8, Math.round(p * 0.8)), 5]; }
+function stepMins(b) { if (b && /30분 훑기/.test(b.title)) return [5, 15, 5, 5]; const p = b ? b.pn : 20; return [p < 10 ? 5 : 10, Math.round(p * readRate(b)), Math.max(3, Math.round(p * 0.3)), 5]; }   // 10.24 밤 개정 4: 지도 인출을 1회독 블록에서 뺌(2회독 지도 인출로) → 블록 = 구조·읽기·정리·휴식
 function blockMin(b) { return stepMins(b).reduce((a, x) => a + x, 0); }
 function fmtMin(x) { const hh = Math.floor(x / 60), mm = x % 60; return hh ? hh + "시간" + (mm ? " " + mm + "분" : "") : mm + "분"; }
 const STEPS = [
   {key:"structure", name:"① 구조", min:10},
   {key:"read", name:"② 읽기", min:60},
   {key:"summary", name:"③ 정리 공부", min:10},
-  {key:"recall", name:"④ 인출", min:20},
-  {key:"rest", name:"⑤ 휴식", min:5},
+  {key:"rest", name:"④ 휴식", min:5},
 ];
 
 // ───────── 저장 ─────────
@@ -842,11 +841,13 @@ function blockProgress(id) {
   const d = S.blocks[id] || {};
   const hasKw = Object.values(d.kw || {}).some(v => kwList(v).length);
   const sm = S.notes && S.notes["summary:" + id];
-  return [!!(d.outline || "").trim(), hasKw, !!(sm && sm.text), (d.attempts || []).length > 0];
+  return [!!(d.outline || "").trim(), hasKw, !!(sm && sm.text)];
 }
-// 다음에 할 단계 (다 했으면 ④ 인출)
-function nextStep(id) { const pr = blockProgress(id); const i = pr.indexOf(false); return i < 0 ? 3 : i; }
-function isDone(id) { return (S.blocks[id]?.attempts || []).length > 0; }
+// 다음에 할 단계 (다 했으면 ③ 정리 공부)
+function nextStep(id) { const pr = blockProgress(id); const i = pr.indexOf(false); return i < 0 ? 2 : i; }
+// 완료 = ③ 정리 공부 끝에서 "블록 완료"를 눌렀거나(done), 예전처럼 인출 채점 기록이 있는 블록
+function isDone(id) { const d = S.blocks[id]; return !!(d && (d.done || (d.attempts || []).length)); }
+function markDone(id) { const d = blk(id); if (!d.done) { d.done = todayStr(); d.u = Date.now(); save(); } }
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 // ───────── 지도(트리) ─────────
@@ -1065,8 +1066,7 @@ function viewNotes(main) {
       if (pv && pv.text) inner.append(sec("🧭 읽기 전 길잡이", aiDiv(pv.text), !(sm && sm.text)));
       if (d.outline) inner.append(sec("🗺 내 지도 · 키워드", mapView(d), false));
       inner.append(h("div", { class: "nb-actions" },
-        h("button", { class: "btn small", onclick: () => { studyId = b.id; studyStep = 3; timerSet(3); go("study"); } }, "④ 인출하러 가기"),
-        h("button", { class: "btn ghost small", onclick: () => { studyId = b.id; studyStep = 2; timerSet(2); go("study"); } }, "③ 정리 공부"),
+        h("button", { class: "btn small", onclick: () => { studyId = b.id; studyStep = 2; timerSet(2); go("study"); } }, "③ 정리 공부"),
         h("button", { class: "btn ghost small", onclick: () => { studyId = b.id; studyStep = 1; timerSet(1); go("study"); } }, "② 읽기")));
       det.append(inner);
       if (qq) det.open = true;
@@ -1089,7 +1089,7 @@ function viewNotes(main) {
 
 // ───────── 전체 일정: 회독 흐름 + 날짜별 할 일 ─────────
 const PHASES = [
-  ["1회독", "2026-10-24", "2026-11-02", "PART별 이론 → 기출 · 이론 블록(B1~B50)이 PART 하나 끝날 때마다 그 과목 문제편 단답·서술·실무 전부 (10.24는 14시부터)"],
+  ["1회독", "2026-10-24", "2026-11-02", "PART별 이론 → 기출 · 이론 블록(B1~B50, 구조·읽기·정리만 · 인출은 2회독에서)이 PART 하나 끝날 때마다 그 과목 문제편 단답·서술·실무 전부 (10.24는 14시부터)"],
   ["2회독", "2026-11-03", "2026-11-08", "기출 2회차 전부 + 지도 인출 · PART별로 지도 인출 → 그 과목 단답·서술·실무를 전부 한 번 더(뼈대만, 실무는 안 고른 문제) → 오늘 ❌ 다시 쓰기"],
   ["3회독", "2026-11-09", "2026-11-13", "마무리 · 모의고사 2회(11.09·11.11) + 틀린 것만 2바퀴 + 총정리 + 암기형 점검 + 약점 카드"],
   ["시험", "2026-11-14", "2026-11-14", "🔐 정보보안기사 실기 (신분증 · 수험표 · 검은 볼펜)"],
@@ -1161,7 +1161,7 @@ function viewToday(main) {
         h("div", { class: "idx" }, dn ? "✓" : String(i + 1)),
         h("div", {}, h("div", { class: "t" }, h("span", { class: "id" }, b.id), b.title),
           h("div", { class: "m" }, `이론편 p.${b.pages} · ${b.pn}쪽 · ${fmtMin(blockMin(b))}`),
-          started ? h("div", { class: "prog-dots" }, ["구조", "읽기", "정리", "인출"].map((nm, k) => h("span", { class: pr[k] ? "on" : "" }, (pr[k] ? "✓ " : "") + nm))) : null),
+          started ? h("div", { class: "prog-dots" }, ["구조", "읽기", "정리"].map((nm, k) => h("span", { class: pr[k] ? "on" : "" }, (pr[k] ? "✓ " : "") + nm))) : null),
         h("div", { class: "act" }, dn ? h("span", { class: "pill done" }, "완료") : null,
           h("button", { class: "btn small" + (dn ? " ghost" : ""), onclick: () => open(dn ? 0 : ns) }, dn ? "다시 보기" : started ? `이어서 ${STEPS[ns].name.split(" ")[0]}` : "시작"))));
     });
@@ -1201,7 +1201,7 @@ function viewStudy(main) {
       h("b", {}, s.name), h("span", {}, stepMins(b)[i] + "분")))),
     timerEl()));
   const area = h("div", { class: "card" }); main.append(area);
-  [stepStructure, stepRead, stepSummary, stepRecall, stepRest][studyStep](area, b);
+  [stepStructure, stepRead, stepSummary, stepRest][studyStep](area, b);
 }
 
 // ───────── 구조 편집기: 단계만 고르면 번호는 자동 ─────────
@@ -1817,7 +1817,7 @@ function aiCard() {
     } catch (e) { status.textContent = "⚠️ " + e.message; }
   };
   return h("div", { class: "card" }, h("h2", {}, "🤖 AI 답변 연결 (Claude API · OpenRouter)"),
-    h("p", { class: "small" }, "키를 넣으면 ② 읽기의 \"모르는 말 바로 묻기\"와 ④ 인출 결과에서 ", h("b", {}, "이 화면 안에서 바로 답"), "이 나와요."),
+    h("p", { class: "small" }, "키를 넣으면 ② 읽기의 \"모르는 말 바로 묻기\"와 지도 인출 결과에서 ", h("b", {}, "이 화면 안에서 바로 답"), "이 나와요."),
     aiOn()
       ? h("div", {},
           h("div", { class: "row" }, h("b", {}, "키 연결됨"), h("button", { class: "btn small ghost", onclick: check }, "연결 확인"),
@@ -1838,7 +1838,7 @@ function aiCard() {
     aiOn() ? creditBox() : null,
     aiOn() ? h("label", { class: "row small", style: "margin-top:10px;gap:6px;cursor:pointer" },
       (() => { const c = h("input", { type: "checkbox" }); c.checked = AI.autoRegrade !== false; c.addEventListener("change", () => { AI.autoRegrade = c.checked; aiSave(); }); return c; })(),
-      h("span", {}, h("b", {}, "④ 인출 채점 뒤 🤖 뜻 채점 자동"), " (노랑·빨강 칸만 · 한 번 몇 원)")) : null,
+      h("span", {}, h("b", {}, "지도 인출 채점 뒤 🤖 뜻 채점 자동"), " (노랑·빨강 칸만 · 한 번 몇 원)")) : null,
     h("p", { class: "small muted" }, `원 표시는 1달러 = ${USD_KRW.toLocaleString()}원으로 계산한 대략값이에요. 정확한 청구액은 ${aiDirect() ? "console.anthropic.com의 Usage" : "OpenRouter 사이트의 Activity"}에서 봐요.`),
     h("p", { class: "small muted", style: "margin-top:8px" }, "키는 이 브라우저에만 저장돼요. GitHub(Gist) 동기화에도 올라가지 않아서, 폰·다른 브라우저에서는 한 번 더 넣어야 해요. 답은 틀릴 수 있으니 분류·숫자·법 조항은 교재로 확인하세요."));
 }
@@ -2335,7 +2335,7 @@ function viewGlossary(main) {
   const items = (glossFilter ? glossaryOf(glossFilter) : S.glossary).slice().reverse();
   const weak = S.glossary.filter(g => g.unknown > g.known);
   main.append(h("div", { class: "card" }, h("h2", {}, "🤖 AI가 알아서 채워요"),
-    h("p", { class: "small" }, "블록을 ④ 인출에서 채점하면, 그 블록의 지도·키워드·틀린 칸을 보고 AI가 어려운 용어와 쉬운 설명을 자동으로 넣어요. 저녁 AI 퀴즈에서 틀린 문제도 들어가요. 필요 없는 건 삭제하면 돼요."),
+    h("p", { class: "small" }, "블록을 지도 인출에서 채점하면, 그 블록의 지도·키워드·틀린 칸을 보고 AI가 어려운 용어와 쉬운 설명을 자동으로 넣어요. 저녁 AI 퀴즈에서 틀린 문제도 들어가요. 필요 없는 건 삭제하면 돼요."),
     aiOn() ? (() => { const out = h("div"); const b2 = h("button", { class: "btn ghost small", onclick: () => extractAll(b2, out) }, "지금까지 블록에서 뽑기"); return h("div", {}, b2, out); })()
            : h("p", { class: "small muted" }, "기록·백업 탭에서 AI 키를 넣으면 켜져요.")));
   main.append(h("div", { class: "card" }, h("h2", {}, "어휘장"),
@@ -2473,13 +2473,13 @@ function copyResult(blockId, g) {
     () => { const ta = h("textarea"); ta.value = txt; document.body.append(ta); ta.select(); document.execCommand("copy"); ta.remove(); alertBox("결과를 복사했어요."); });
 }
 
-// ③ 정리 공부: 내 키워드로 AI가 만든 총정리를 공부하고 나서 인출해요
+// ③ 정리 공부: 내 키워드로 AI가 만든 총정리를 공부해요. 1회독 블록은 여기서 끝 (인출은 2회독 지도 인출)
 function stepSummary(area, b) {
   const d = blk(b.id); const nodes = parseOutline(d.outline);
   const kwN = nodes.filter(n => kwList(d.kw[n.path]).length).length;
   const sMin = stepMins(b)[2];
   area.append(h("h2", {}, `③ 정리 공부: AI 정리로 이해 다지기 (${sMin}분)`),
-    h("p", {}, "② 읽기에서 적은 키워드로 AI가 이 블록을 문장으로 정리해 줘요. ", h("b", {}, "이걸 공부한 다음 ④ 인출"), "에서 책과 정리를 덮고 지도를 다시 채워요."),
+    h("p", {}, "② 읽기에서 적은 키워드로 AI가 이 블록을 문장으로 정리해 줘요. ", h("b", {}, "1회독 블록은 여기까지"), "예요. 책을 덮고 지도를 다시 채우는 인출은 2회독(11.03 ~)에서 PART별로 몰아서 해요."),
     h("ol", {},
       h("li", {}, h("b", {}, "한 줄 요약"), "을 먼저 읽고 큰 그림을 잡아요."),
       h("li", {}, h("b", {}, "제목별 정리"), "를 한 칸씩 읽어요. 읽고 나서 눈을 떼고 ", h("b", {}, "\"뭐야 → 어떻게 → 왜\""), "를 속으로 한 번 말해 봐요. 막히면 그 칸만 다시 읽어요."),
@@ -2492,13 +2492,13 @@ function stepSummary(area, b) {
   area.append(summaryCard(b.id, null),
     h("div", { class: "row", style: "margin-top:10px" },
       h("button", { class: "btn ghost", onclick: () => { studyStep = 1; timerSet(1); render(); } }, "← ② 읽기로 (키워드 고치기)"),
-      h("button", { class: "btn", onclick: () => { studyStep = 3; timerSet(3); render(); } }, "다음: ④ 인출 (정리 덮고) →")),
+      h("button", { class: "btn", onclick: () => { markDone(b.id); studyStep = 3; timerSet(3); render(); } }, "블록 완료 → ④ 휴식")),
     drawer.fab, drawer.panel);
 }
 
 function stepRecall(area, b) {
   const cMin = stepMins(b)[3], c1 = Math.round(cMin * 0.4), c2 = Math.round(cMin * 0.83);
-  area.append(h("h2", {}, `④ 인출: 덮고 쓰기 → 채점 → 틀린 칸만 다시 (${cMin}분)`),
+  area.append(h("h2", {}, `지도 인출: 덮고 쓰기 → 채점 → 틀린 칸만 다시 (${cMin}분)`),
     h("table", {},
       h("tr", {}, h("td", {}, h("b", {}, `0 ~ ${c1}분`)), h("td", {}, h("b", {}, "책과 메모를 덮고"), " 아래 칸을 채워요. 모르면 비워 두고 다음 칸으로 가요.")),
       h("tr", {}, h("td", {}, h("b", {}, `${c1}분`)), h("td", {}, h("b", {}, "채점"), "을 눌러요.")),
@@ -2513,14 +2513,14 @@ function stepRecall(area, b) {
   const gr = glossaryRecall(b.id); if (gr) area.append(gr);
   area.append(h("div", { class: "row", style: "margin-top:10px" },
     h("button", { class: "btn ghost", onclick: () => render() }, "다시 인출하기"),
-    h("button", { class: "btn", onclick: () => { studyStep = 4; timerSet(4); render(); } }, "다음: ⑤ 휴식 →")));
+    h("button", { class: "btn", onclick: () => { studyStep = 3; timerSet(3); render(); } }, "다음: ④ 휴식 →")));
 }
 
 function stepRest(area, b) {
   const t = todayStr(); const todays = BLOCKS.filter(x => x.date === t);
   const next = todays.find(x => !isDone(x.id) && x.id !== b.id);
-  area.append(h("h2", {}, "⑤ 휴식 (5분)"),
-    h("p", {}, isDone(b.id) ? `✅ ${b.id} 완료로 기록됐어요.` : `⚠️ ${b.id}는 아직 인출 채점 기록이 없어요. ④에서 채점을 한 번 눌러야 완료로 기록돼요.`),
+  area.append(h("h2", {}, "④ 휴식 (5분)"),
+    isDone(b.id) ? h("p", {}, `✅ ${b.id} 완료로 기록됐어요.`) : h("p", {}, `⚠️ ${b.id}는 아직 완료로 기록되지 않았어요. `, h("button", { class: "btn small", onclick: () => { markDone(b.id); render(); } }, "완료로 기록")),
     h("p", {}, "화면에서 눈을 떼고 쉬세요. 타이머 5분이 끝나면 다음 블록을 시작해요."),
     next ? h("button", { class: "btn", onclick: () => { studyId = next.id; studyStep = 0; timerSet(0); render(); } }, `다음 블록: ${next.id} 시작 →`)
          : h("button", { class: "btn", onclick: () => go("today") }, "오늘 화면으로"));
@@ -2651,7 +2651,7 @@ function viewPairs(main) {
   const a = h("input", { type: "text", placeholder: "예) OSPF" }), b = h("input", { type: "text", placeholder: "예) OCSP" });
   const note = h("input", { type: "text", placeholder: "예) OSPF = 링크 상태 라우팅 프로토콜 / OCSP = 인증서 폐기 여부 실시간 조회", style: "flex:1;min-width:240px" });
   main.append(h("div", { class: "card" }, h("h2", {}, "🤖 AI가 알아서 채워요"),
-    h("p", { class: "small" }, "블록을 ④ 인출에서 채점하면, 그 블록의 지도·키워드·틀린 칸을 보고 AI가 헷갈리는 개념 쌍과 차이을 자동으로 넣어요. 저녁 AI 퀴즈에서 틀린 문제도 들어가요. 필요 없는 건 삭제하면 돼요."),
+    h("p", { class: "small" }, "블록을 지도 인출에서 채점하면, 그 블록의 지도·키워드·틀린 칸을 보고 AI가 헷갈리는 개념 쌍과 차이을 자동으로 넣어요. 저녁 AI 퀴즈에서 틀린 문제도 들어가요. 필요 없는 건 삭제하면 돼요."),
     aiOn() ? (() => { const out = h("div"); const b2 = h("button", { class: "btn ghost small", onclick: () => extractAll(b2, out) }, "지금까지 블록에서 뽑기"); return h("div", {}, b2, out); })()
            : h("p", { class: "small muted" }, "기록·백업 탭에서 AI 키를 넣으면 켜져요.")));
   main.append(h("div", { class: "card" }, h("h2", {}, "헷갈리는 쌍 직접 넣기"),
@@ -2702,6 +2702,7 @@ function mergeStates(A, B) {
     for (const a of [...(x.attempts || []), ...(y.attempts || [])]) { const k = [a.date, a.time, a.hit, a.total].join("|"); if (!seen.has(k)) { seen.add(k); attempts.push(a); } }
     attempts.sort((p, q) => (p.date + p.time).localeCompare(q.date + q.time));
     out.blocks[id] = { outline: w.outline, kw: w.kw, u: Math.max(+x.u || 0, +y.u || 0), attempts };
+    if (x.done || y.done) out.blocks[id].done = x.done && y.done ? (x.done < y.done ? x.done : y.done) : (x.done || y.done);
     if (w.starts || x.starts || y.starts) out.blocks[id].starts = w.starts || x.starts || y.starts;
   }
   // 칸별 맞음/틀림 횟수: 큰 쪽 (더하면 다시 동기화할 때마다 불어나요)
@@ -3095,16 +3096,15 @@ function viewHelp(main) {
     h("h3", {}, "용어"),
     h("ul", {},
       h("li", {}, h("b", {}, "블록(B1~B50)"), " = 교재 제목(1., 2. …) 단위로 묶은 공부 범위예요. 짧은 제목은 이어 붙이고, 25쪽 넘는 제목은 나눴어요(✂️). 예) B1 = 이론편 p.3~8 '1. 윈도우 기본 학습'"),
-      h("li", {}, h("b", {}, "블록 시간"), " = 쪽수에 비례해요 (20쪽이면 약 1시간 35분). 하루에 블록 5 ~ 6개를 순서대로 해요."),
+      h("li", {}, h("b", {}, "블록 시간"), " = 쪽수에 비례해요 (20쪽이면 약 1시간). 하루에 블록 3 ~ 10개를 순서대로 해요."),
       h("li", {}, h("b", {}, "지도(트리)"), " = 그 블록의 소제목을 계층으로 적은 목록이에요. ", h("b", {}, "내가 교재를 보고 직접 만들어요.")),
-      h("li", {}, h("b", {}, "인출"), " = 책을 덮고 기억만으로 다시 쓰는 거예요.")),
-    h("h3", {}, "블록 하나 (20쪽 기준 1시간 35분, 쪽수에 따라 늘고 줄어요)"),
+      h("li", {}, h("b", {}, "인출"), " = 책을 덮고 기억만으로 다시 쓰는 거예요. 1회독 블록에서는 하지 않고, 2회독(11.03 ~)에서 PART별 지도 인출로 몰아서 해요.")),
+    h("h3", {}, "블록 하나 (20쪽 기준 1시간 1분, 쪽수에 따라 늘고 줄어요)"),
     h("ol", {},
       h("li", {}, h("b", {}, "① 구조 10분 (10쪽 미만 5분)"), ": 블록 범위를 넘기며 굵은 소제목만 적어 지도를 만들어요."),
       h("li", {}, h("b", {}, "② 읽기 쪽수 × 2.0분 (훑기 블록은 1.5분)"), ": 지도를 옆에 두고 읽으면서 칸마다 키워드 2~3개를 적어요. ★ 부분만 꼼꼼히 읽어요."),
       h("li", {}, h("b", {}, "③ 정리 공부 쪽수 × 0.3분 (최소 3분)"), ": 내 키워드로 AI가 만든 총정리를 읽고 칸마다 뭐야·어떻게·왜를 속으로 말해 봐요."),
-      h("li", {}, h("b", {}, "④ 인출 쪽수 × 0.8분 (최소 8분)"), ": 책을 덮고 빈 지도에 키워드를 다시 써요 → 채점 → 빠진 칸만 책에서 확인해요."),
-      h("li", {}, h("b", {}, "⑤ 휴식 5분"))),
+      h("li", {}, h("b", {}, "④ 휴식 5분"), ". 인출은 1회독 블록에 없어요 (2회독 지도 인출).")),
     h("h3", {}, "기출 노트 (문제편 = 과목별 기출문제집)"),
     h("ul", {},
       h("li", {}, "저녁 기출을 풀 때 ", h("b", {}, "문제 → 책 덮고 내 답 뼈대 → 교재 정답·해설"), "을 붙여 넣고 ", h("b", {}, "저장 + 🤖 AI 정리"), ". 네 칸(정의·동작·왜·대응) 채점, 실기 답안 뼈대, 이론 연결, 헷갈리는 것, 변형 출제, 외울 것 한 줄이 나와요. 아래 칸에서 이어서 물어볼 수 있어요."),
@@ -3122,11 +3122,11 @@ function viewHelp(main) {
       h("li", {}, "모르는 단어나 문장을 적고, 칸과 질문 방식(쉬운 말로 · 비유·예시로 · 왜 필요한지 · 비슷한 것과 차이)을 골라요."),
       h("li", {}, h("b", {}, "물어보기"), " → 바로 아래에 답이 나와요. 이어서 더 물어볼 수도 있어요. (기록·백업 탭에서 AI 키를 넣어야 해요. 키가 없으면 \"질문 복사\"로 Claude Code나 휴대폰 앱에 붙여 넣어요.)"),
       h("li", {}, "설명을 읽고 ", h("b", {}, "화면을 보지 않고 내 말로 한두 줄"), " 정리해요. 못 쓰겠으면 질문 방식을 바꿔 다시 물어요."),
-      h("li", {}, h("b", {}, "어휘장에 저장"), " → ④ 인출 끝, 아침 복습, 저녁 퀴즈에서 다시 나와요. 어휘장 탭에서 정리를 고칠 수 있어요.")),
+      h("li", {}, h("b", {}, "어휘장에 저장"), " → 지도 인출 끝, 아침 복습, 저녁 퀴즈에서 다시 나와요. 어휘장 탭에서 정리를 고칠 수 있어요.")),
     h("p", { class: "small muted" }, "질문 시간도 읽기 시간 안에 들어가요. 한 번에 1 ~ 2분, 한 블록에 3 ~ 5개까지만 해요."),
     h("h3", {}, "AI가 알아서 하는 것 (AI 키를 넣었을 때)"),
     h("ul", {},
-      h("li", {}, h("b", {}, "④ 인출 채점 뒤"), ": 그 블록의 지도·키워드·틀린 칸을 보고 어려운 용어는 어휘장에, 헷갈리는 개념은 헷갈리는 쌍에 자동으로 넣어요. 지도·키워드를 고쳤을 때만 다시 뽑아요."),
+      h("li", {}, h("b", {}, "지도 인출 채점 뒤"), ": 그 블록의 지도·키워드·틀린 칸을 보고 어려운 용어는 어휘장에, 헷갈리는 개념은 헷갈리는 쌍에 자동으로 넣어요. 지도·키워드를 고쳤을 때만 다시 뽑아요."),
       h("li", {}, h("b", {}, "아침 복습"), ": 처음 열면 어제 블록을 블록별 핵심, 틀린 칸, 헷갈리는 것, 셀프 체크 질문으로 정리해요. 한 번 만들면 저장돼요."),
       h("li", {}, h("b", {}, "저녁 퀴즈"), ": \"문제 만들기\"를 누르면 오늘 블록으로 단답·서술 문제를 만들고, 다 풀면 채점해요. 틀린 문제는 어휘장·헷갈리는 쌍에 들어가요."),
       h("li", {}, "AI는 교재 본문을 못 보고 ", h("b", {}, "내 지도·키워드만"), " 봐요. 그래서 키워드를 잘 적을수록 결과가 좋아요. 숫자·법 조항은 교재로 확인해요.")),
