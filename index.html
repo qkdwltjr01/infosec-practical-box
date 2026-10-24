@@ -240,6 +240,12 @@ label.row { gap: 8px; cursor: pointer; color: var(--text-2); }
 .sday .bl { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
 .sday .bl button { font: inherit; font-size: 12.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); cursor: pointer; }
 .sday .bl button.done { background: var(--ok-wash); color: var(--ok); border-color: var(--ok-line); }
+.sday .bl button.pc { font-weight: 600; }
+.sday .bl button.pc.prob { background: var(--accent-wash); color: var(--accent); border-color: var(--accent-line); }
+.sday .bl button.pc.recall { background: var(--ok-wash); color: var(--ok); border-color: var(--ok-line); }
+.sday .bl button.pc.wrong { background: var(--warn-wash); color: var(--warn); border-color: var(--warn-line); }
+.sday .bl button.pc.mock { background: var(--bad-wash); color: var(--bad); border-color: var(--bad-line); }
+.sday .bl button.pc.review { background: var(--surface-2); color: var(--text-2); border-color: var(--line); }
 @media (max-width: 560px) { .phase-row { grid-template-columns: 1fr; gap: 2px; } .sday { grid-template-columns: 1fr; gap: 4px; } }
 .blist { display: flex; flex-direction: column; gap: 8px; }
 .bitem { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--bg); }
@@ -682,73 +688,74 @@ const BLOCKS = [
   ["B11","2026-10-26","PART 2 네트워크","S04 · 1. 네트워크와 보안 위협, 2. OSI 7계층, 3. ARP/RARP","165~186",[138,145]],
   ["B12","2026-10-26","PART 2 네트워크","S04 · 4. IP(IPv4), 5. ICMP","187~205",[146,153]],
   ["B13","2026-10-26","PART 2 네트워크","★ S04 · 6. TCP, 7. UDP, 8. 네트워크 관련 기술","206~225",[154,160]],
-  ["B14","2026-10-27","PART 2 네트워크","★ S04 · 9. 네트워크 관리 명령어","226~234",[161,164]],
-  ["B15","2026-10-27","PART 2 네트워크","★ S04 · 10. 스니핑 공격","235~255",[165,172]],
-  ["B16","2026-10-27","PART 2 네트워크","★ S04 · 11. 포트 스캔 기법","256~271",[173,178]],
-  ["B17","2026-10-27","PART 2 네트워크","★ S04 · 12. 서비스 거부(DoS) 공격","272~282",[179,182]],
+  ["B14","2026-10-26","PART 2 네트워크","★ S04 · 9. 네트워크 관리 명령어","226~234",[161,164]],
+  ["B15","2026-10-26","PART 2 네트워크","★ S04 · 10. 스니핑 공격","235~255",[165,172]],
+  ["B16","2026-10-26","PART 2 네트워크","★ S04 · 11. 포트 스캔 기법","256~271",[173,178]],
+  ["B17","2026-10-26","PART 2 네트워크","★ S04 · 12. 서비스 거부(DoS) 공격","272~282",[179,182]],
   ["B18","2026-10-27","PART 2 네트워크","★ S04 · 13. DDoS 공격 ① ✂️","283~300",[183,189]],
   ["B19","2026-10-27","PART 2 네트워크","★ S04 · 13. DDoS 공격 ② ✂️ (끝까지)","301~317",[190,195]],
   ["B20","2026-10-27","PART 2 네트워크","S04 · 14. DRDoS 공격","318~326",[196,198]],
   ["B21","2026-10-27","PART 2 네트워크","S04 · 15. 무선랜 보안 (30분 훑기)","327~346",[199,206]],
   ["B22","2026-10-27","PART 2 네트워크","★ S05 · 1. VPN, 2. IPsec","347~364",[207,213]],
   ["B23","2026-10-27","PART 2 네트워크","★ S05 · 3. SSL/TLS","365~382",[214,220]],
-  ["B24","2026-10-28","PART 2 네트워크","S06 라우터 보안 전체 + PART 2 트리","383~396",[221,225]],
+  ["B24","2026-10-27","PART 2 네트워크","S06 라우터 보안 전체 + PART 2 트리","383~396",[221,225]],
   ["B25","2026-10-29","PART 3 애플리케이션","★ S07 · 1. DNS","397~414",[312,319]],
   ["B26","2026-10-29","PART 3 애플리케이션","S07 · 2. HTTP, 3. FTP, 4. SNMP, 5. DHCP","415~438",[320,329]],
-  ["B27","2026-10-30","PART 3 애플리케이션","★ S08 · 1. SQL Injection","439~457",[330,337]],
-  ["B28","2026-10-30","PART 3 애플리케이션","★ S08 · 2. XSS, 3. CSRF, 4. SSRF, 5. OS 명령 실행","458~473",[338,344]],
-  ["B29","2026-10-30","PART 3 애플리케이션","★ S08 · 6. 파일 업로드 ~ 10. URL/파라미터 변조","474~494",[345,352]],
-  ["B30","2026-10-30","PART 3 애플리케이션","S08 · 11. 세션 관리 ~ 14. 개발 보안관리","495~509",[353,359]],
-  ["B31","2026-10-30","PART 3 애플리케이션","S09 · 1. 디렉터리 리스팅 ~ 5. 검색엔진 정보 노출","510~522",[360,364]],
-  ["B32","2026-10-30","PART 3 애플리케이션","★ S09 · 6. 웹서버 보안 대책(아파치), 7. 웹 로그 분석, 8. 보안서버 구축","523~539",[365,371]],
-  ["B33","2026-10-30","PART 3 애플리케이션","S10 이메일 보안 전체","540~555",[372,378]],
-  ["B34","2026-10-30","PART 3 애플리케이션","S11 데이터베이스 보안 + S12 클라우드 + PART 3 트리","556~576",[379,387]],
-  ["B35","2026-11-01","PART 4 침해사고","★ S13 · 1. Snort ① ✂️","577~589",[450,455]],
-  ["B36","2026-11-01","PART 4 침해사고","★ S13 · 1. Snort ② ✂️ (끝까지)","590~602",[456,461]],
-  ["B37","2026-11-01","PART 4 침해사고","★ S13 · 2. iptables","603~624",[462,471]],
-  ["B38","2026-11-01","PART 4 침해사고","S13 · 3. 보안 솔루션 ~ 5. 보안 장비 취약점 (30분 훑기)","625~643",[472,480]],
-  ["B39","2026-11-01","PART 4 침해사고","S14 시스템 점검 도구 전체 (30분 훑기)","644~655",[481,486]],
-  ["B40","2026-11-01","PART 4 침해사고","S15 · 1. 리버스 셸, 2. 루트킷 시나리오","656~672",[487,493]],
-  ["B41","2026-11-01","PART 4 침해사고","S15 · 3. DBD 시나리오","673~684",[494,499]],
-  ["B42","2026-11-01","PART 4 침해사고","S15 · 4. 악성코드 행위 분석 시나리오","685~701",[500,507]],
-  ["B43","2026-11-02","PART 4 침해사고","S15 · 5. 워터링 홀 시나리오","702~716",[508,514]],
-  ["B44","2026-11-02","PART 4 침해사고","S16 주요 취약점 전체 (ShellShock, SSL/TLS, NTP, SSDP) + PART 4 트리","717~738",[515,524]],
-  ["B45","2026-11-03","PART 5 관리","S17 · 1. 정보보호 개요, 2. 접근통제, 3. 정보보호정책","739~752",[584,587]],
-  ["B46","2026-11-03","PART 5 관리","★ S17 · 4. 위험관리","753~767",[588,592]],
-  ["B47","2026-11-03","PART 5 관리","S17 · 5. BCP/DRP ~ 10. ISMS-P 인증","768~790",[593,599]],
-  ["B48","2026-11-04","PART 6 법규","★ S18 · 1. 법규 개요, 2. 개인정보 보호법","791~812",[610,637]],
-  ["B49","2026-11-04","PART 6 법규","★ S18 · 3. 안전성 확보조치 기준, 4. 정보통신망법, 5. 정보통신기반 보호법","813~834",[638,665]],
-  ["B50","2026-11-04","PART 6 법규","S18 · 6. 전자서명법, 7. 위치정보법 + PART 5·6 트리","835~끝",[666,686]],
+  ["B27","2026-10-29","PART 3 애플리케이션","★ S08 · 1. SQL Injection","439~457",[330,337]],
+  ["B28","2026-10-29","PART 3 애플리케이션","★ S08 · 2. XSS, 3. CSRF, 4. SSRF, 5. OS 명령 실행","458~473",[338,344]],
+  ["B29","2026-10-29","PART 3 애플리케이션","★ S08 · 6. 파일 업로드 ~ 10. URL/파라미터 변조","474~494",[345,352]],
+  ["B30","2026-10-29","PART 3 애플리케이션","S08 · 11. 세션 관리 ~ 14. 개발 보안관리","495~509",[353,359]],
+  ["B31","2026-10-29","PART 3 애플리케이션","S09 · 1. 디렉터리 리스팅 ~ 5. 검색엔진 정보 노출","510~522",[360,364]],
+  ["B32","2026-10-29","PART 3 애플리케이션","★ S09 · 6. 웹서버 보안 대책(아파치), 7. 웹 로그 분석, 8. 보안서버 구축","523~539",[365,371]],
+  ["B33","2026-10-29","PART 3 애플리케이션","S10 이메일 보안 전체","540~555",[372,378]],
+  ["B34","2026-10-29","PART 3 애플리케이션","S11 데이터베이스 보안 + S12 클라우드 + PART 3 트리","556~576",[379,387]],
+  ["B35","2026-10-31","PART 4 침해사고","★ S13 · 1. Snort ① ✂️","577~589",[450,455]],
+  ["B36","2026-10-31","PART 4 침해사고","★ S13 · 1. Snort ② ✂️ (끝까지)","590~602",[456,461]],
+  ["B37","2026-10-31","PART 4 침해사고","★ S13 · 2. iptables","603~624",[462,471]],
+  ["B38","2026-10-31","PART 4 침해사고","S13 · 3. 보안 솔루션 ~ 5. 보안 장비 취약점 (30분 훑기)","625~643",[472,480]],
+  ["B39","2026-10-31","PART 4 침해사고","S14 시스템 점검 도구 전체 (30분 훑기)","644~655",[481,486]],
+  ["B40","2026-10-31","PART 4 침해사고","S15 · 1. 리버스 셸, 2. 루트킷 시나리오","656~672",[487,493]],
+  ["B41","2026-10-31","PART 4 침해사고","S15 · 3. DBD 시나리오","673~684",[494,499]],
+  ["B42","2026-10-31","PART 4 침해사고","S15 · 4. 악성코드 행위 분석 시나리오","685~701",[500,507]],
+  ["B43","2026-10-31","PART 4 침해사고","S15 · 5. 워터링 홀 시나리오","702~716",[508,514]],
+  ["B44","2026-10-31","PART 4 침해사고","S16 주요 취약점 전체 (ShellShock, SSL/TLS, NTP, SSDP) + PART 4 트리","717~738",[515,524]],
+  ["B45","2026-11-01","PART 5 관리","S17 · 1. 정보보호 개요, 2. 접근통제, 3. 정보보호정책","739~752",[584,587]],
+  ["B46","2026-11-01","PART 5 관리","★ S17 · 4. 위험관리","753~767",[588,592]],
+  ["B47","2026-11-01","PART 5 관리","S17 · 5. BCP/DRP ~ 10. ISMS-P 인증","768~790",[593,599]],
+  ["B48","2026-11-02","PART 6 법규","★ S18 · 1. 법규 개요, 2. 개인정보 보호법","791~812",[610,637]],
+  ["B49","2026-11-02","PART 6 법규","★ S18 · 3. 안전성 확보조치 기준, 4. 정보통신망법, 5. 정보통신기반 보호법","813~834",[638,665]],
+  ["B50","2026-11-02","PART 6 법규","S18 · 6. 전자서명법, 7. 위치정보법 + PART 5·6 트리","835~끝",[666,686]],
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
 
 // 날짜별 문제편(기출) 할 일 (일별계획.md "1·2회독 날짜표"와 같음). [순서(before=블록 전/after=블록 뒤), 제목, 방법, 분]
 const RECALL = "웹 아침 복습 → 범위 '총정리 · PART' → 블록마다 책 덮고 지도 채우기 → 채점 → 노랑·빨강 칸만 이론편 그 소제목 다시 읽기(칸당 1분). 쪽당 1.7분", WRONG = "기출 노트 → 과목 칩 → '틀린 것만' → 책 덮고 다시 타이핑 → AI 정리와 비교 → ✅/❌. 문제당 8분", MOCK = "문제편에서 뽑은 세트: 단답 12(과목별 2개) + 서술 4(시스템·네트워크·앱·침해 각 1) + 실무 2(주력 분야 1 + 다른 과목 1). 전날 밤 기출 노트 '틀린 것만' 위주로 번호만 적어 두고 답은 안 봐요. 실제처럼 종이에 검은 볼펜", GRADE = "교재 해설로 채점 → 틀린 문제는 기출 노트에서 찾아 ❌ 표시(없으면 새로 저장 + AI 정리) → 틀린 개념의 블록 지도 인출", SUM = "정리 모음 탭 → PART 고르기 → 블록마다 🧾 총정리 읽기 → 안 떠오르는 칸만 지도 인출. 분당 1.5쪽";
-const DAN = "책 덮고 바로 답 쓰기 → 채점 → 틀린 것만 해설. 쪽당 2분", SEO = "한 문제 15분: 문제 → 책 덮고 답안 끝까지 타이핑(기출 노트 '내 답' 칸) → 해설 핵심 붙여넣기 → 저장 + AI 정리 → 빠진 칸 지도에 추가", SIL = "2문제 중 1개 고르는 연습: 둘 다 읽고 자신 있는 쪽을 끝까지 타이핑, 나머지는 해설만. 저장 + AI 정리";
+const DAN = "모든 문제를 기출 노트에 저장: 단답형 묶음 입력(한 줄에 한 문제) → 책 덮고 내 답 → 정답·해설 한마디 → 저장 + AI 정리(틀린 것만 설명). 쪽당 2.5분", SEO = "한 문제 15분: 문제 → 책 덮고 답안 끝까지 타이핑(기출 노트 '내 답' 칸) → 해설 핵심 붙여넣기 → 저장 + AI 정리 → 빠진 칸 지도에 추가", SIL = "2문제 중 1개 고르는 연습: 둘 다 읽고 자신 있는 쪽을 끝까지 타이핑, 나머지는 해설만. 저장 + AI 정리";
 const PROB = {
-  "2026-10-25": [["after", "시스템 단답형 p.6~79 (74쪽)", DAN, 148], ["after", "시스템 서술형 p.80~99 (20쪽)", SEO, 200]],
-  "2026-10-26": [["before", "시스템 실무형 p.100~137 (38쪽) · 시스템 기출 끝", SIL, 380]],
-  "2026-10-28": [["after", "네트워크 단답형 p.138~225 (88쪽)", DAN, 176], ["after", "네트워크 서술형 p.226~265 (40쪽)", SEO, 400]],
-  "2026-10-29": [["before", "네트워크 서술형 p.266~283 (18쪽)", SEO, 180], ["before", "네트워크 실무형 p.284~311 (28쪽) · 네트워크 기출 끝", SIL, 280]],
-  "2026-10-31": [["after", "애플리케이션 단답형 p.312~387 (76쪽)", DAN, 152], ["after", "애플리케이션 서술형 p.388~417 (30쪽)", SEO, 300], ["after", "애플리케이션 실무형 p.418~439 (22쪽)", SIL, 220]],
-  "2026-11-01": [["before", "애플리케이션 실무형 p.440~449 (10쪽) · 애플리케이션 기출 끝", SIL, 100]],
-  "2026-11-02": [["after", "침해사고 단답형 p.450~524 (75쪽)", DAN, 150], ["after", "침해사고 서술형 p.525~549 (25쪽)", SEO, 250], ["after", "침해사고 실무형 p.550~559 (10쪽)", SIL, 100]],
-  "2026-11-03": [["before", "침해사고 실무형 p.560~583 (24쪽) · 침해사고 기출 끝", SIL, 240], ["after", "정보보안 일반 단답 p.584~599 · 서술 p.600~604 · 실무 p.605~609 (26쪽)", "단답은 " + DAN + ", 서술·실무는 끝까지 타이핑 → 저장 + AI 정리", 132]],
-  "2026-11-04": [["after", "관리·법규 단답형 p.610~686 (77쪽, 빈칸 위주)", DAN + " (법규는 1.5분)", 115], ["after", "관리·법규 서술형 p.687~703 (17쪽)", SEO, 170], ["after", "관리·법규 실무형 p.704~712 (9쪽)", SIL, 90]],
-  "2026-11-05": [["before", "관리·법규 실무형 p.713~721 (9쪽) · 기출 전부 끝", SIL, 90], ["after", "PART 1 지도 인출 B1~B10 (164쪽)", RECALL, 279, "morning"], ["after", "PART 2 앞 지도 인출 B11~B16 (107쪽)", RECALL, 182, "morning"], ["after", "기출 오답 다시 쓰기 · 시스템 ❌·⚠️ 전부", WRONG, 120]],
-  "2026-11-06": [["after", "PART 2 뒤 지도 인출 B17~B24 (125쪽)", RECALL, 213, "morning"], ["after", "PART 3 지도 인출 B25~B34 (180쪽)", RECALL, 306, "morning"], ["after", "명령어 요약 p.722~ 앞 절반", "명령어·옵션을 가리고 떠올리기 → 못 떠올린 것만 어휘장에 저장", 30, "glossary"], ["after", "기출 오답 다시 쓰기 · 네트워크 ❌·⚠️ 전부", WRONG, 120]],
-  "2026-11-07": [["after", "PART 4 지도 인출 B35~B44 (162쪽)", RECALL, 275, "morning"], ["after", "PART 5·6 지도 인출 B45~B50 (112쪽)", RECALL, 190, "morning"], ["after", "명령어 요약 뒤 절반", "명령어·옵션을 가리고 떠올리기 → 못 떠올린 것만 어휘장에 저장", 30, "glossary"], ["after", "기출 오답 다시 쓰기 · 애플리케이션·침해사고·일반·관리법규 ❌·⚠️ 전부", WRONG, 150], ["after", "실무형 주력 분야 확정", "기출 노트 과목 칩의 ❌ 수를 비교해 시스템·네트워크·침해사고 중 하나로. 모의고사 실무형은 이 분야 문제를 먼저 봐요", 20]],
-  "2026-11-08": [["after", "🕒 모의고사 1 (09:00~12:00 · 180분 · 종이에 손글씨)", MOCK, 180], ["after", "채점·복기 (13:00~15:00)", GRADE, 120], ["after", "정리 모음 PART 1·2 총정리 훑기 (344쪽)", SUM, 230, "notes"], ["after", "암기형 점검 ① 포트 번호 · 명령어 옵션", "명령어 요약 + 어휘장 '몰랐음'을 가리고 쓰기. 못 쓴 것만 카드로", 90, "glossary"]],
-  "2026-11-09": [["after", "모의 1 ❌ 다시 쓰기 + 그 개념 블록 지도 인출", "틀린 문제를 책 덮고 다시 타이핑 → 해당 블록을 아침 복습에서 지도 인출", 240], ["after", "정리 모음 PART 3·4 총정리 훑기 (342쪽)", SUM, 230, "notes"], ["after", "기출 노트 '틀린 것만' 전체 1차", "과목 상관없이 ❌·⚠️ 남은 것 전부 → 다시 타이핑 → ✅/❌", 180]],
-  "2026-11-10": [["after", "🕒 모의고사 2 (09:00~12:00)", MOCK, 180], ["after", "채점·복기 (13:00~15:00)", GRADE, 120], ["after", "정리 모음 PART 5·6 총정리 훑기 (172쪽)", SUM, 120, "notes"], ["after", "암기형 점검 ② 법 조항 숫자 · Snort·iptables 문법", "법규 단답 ❌ 다시 + Snort/iptables 룰을 백지에 써 보기", 150, "glossary"], ["after", "기출 노트 ☆ 문제 전부", "안 배운 주제로 미뤄 둔 ☆ 문제를 풀고 ☆ 해제", 60]],
-  "2026-11-11": [["after", "모의 2 ❌ 다시 쓰기 + 블록 지도 인출", "틀린 문제를 책 덮고 다시 타이핑 → 해당 블록 지도 인출", 240], ["after", "자주 틀린 칸 전체 인출", "기록·백업 '자주 틀린 칸' 상위 30 + 헷갈리는 쌍 전체 → 책 덮고 쓰기", 180, "records"], ["after", "기출 노트 '틀린 것만' 전체 2차", "1차에서 또 ❌인 것만 → 다시 타이핑 → 답안 뼈대 외우기", 180]],
-  "2026-11-12": [["after", "🕒 모의고사 3 (09:00~12:00)", MOCK, 180], ["after", "채점·복기 (13:00~15:00)", GRADE, 120], ["after", "헷갈리는 쌍 전체 + 어휘장 '몰랐음' 전부", "쌍마다 차이 한 줄 말하기, 어휘는 내 말로 설명", 180, "pairs"], ["after", "약점 카드 만들기 (모의 1~3 ❌ 모음)", "기출 노트 → '틀린 것만' → .md 내보내기 → 내일 읽을 것", 60]],
+  "2026-10-25": [["after", "시스템 단답형 p.6~79 (74쪽)", DAN, 185], ["after", "시스템 서술형 p.80~99 (20쪽)", SEO, 200]],
+  "2026-10-26": [["before", "시스템 실무형 p.100~137 (38쪽) · 시스템 기출 끝", SIL, 228]],
+  "2026-10-27": [["after", "네트워크 단답형 p.138~225 (88쪽)", DAN, 220], ["after", "네트워크 서술형 p.226~232 (7쪽)", SEO, 70]],
+  "2026-10-28": [["before", "네트워크 서술형 p.233~283 (51쪽)", SEO, 510], ["before", "네트워크 실무형 p.284~311 (28쪽) · 네트워크 기출 끝", SIL, 168]],
+  "2026-10-29": [],
+  "2026-10-30": [["before", "애플리케이션 단답형 p.312~387 (76쪽)", DAN, 190], ["before", "애플리케이션 서술형 p.388~417 (30쪽)", SEO, 300], ["before", "애플리케이션 실무형 p.418~449 (32쪽) · 애플리케이션 기출 끝", SIL, 192]],
+  "2026-10-31": [["after", "침해사고 단답형 p.450~494 (45쪽)", DAN, 112]],
+  "2026-11-01": [["before", "침해사고 단답형 p.495~524 (30쪽)", DAN, 75], ["before", "침해사고 서술형 p.525~549 (25쪽)", SEO, 250], ["before", "침해사고 실무형 p.550~583 (34쪽) · 침해사고 기출 끝", SIL, 204]],
+  "2026-11-02": [["before", "정보보안 일반 단답형 p.584~599 (16쪽)", DAN, 40], ["before", "정보보안 일반 서술형 p.600~604 (5쪽)", SEO, 50], ["before", "정보보안 일반 실무형 p.605~609 (5쪽)", SIL, 30], ["after", "관리·법규 단답형 p.610~686 (77쪽)", DAN + " (법규는 1.5분)", 116], ["after", "관리·법규 서술형 p.687~703 (17쪽)", SEO, 170], ["after", "관리·법규 실무형 p.704~721 (18쪽) · 기출 전부 끝", SIL, 108]],
+  "2026-11-03": [["after", "PART 1 지도 인출 B1~B10 (164쪽)", RECALL, 279, "morning"], ["after", "PART 2 앞 지도 인출 B11~B16 (107쪽)", RECALL, 182, "morning"], ["after", "기출 오답 다시 쓰기 · 시스템 틀린 것 전부", WRONG, 120]],
+  "2026-11-04": [["after", "PART 2 뒤 지도 인출 B17~B24 (125쪽)", RECALL, 213, "morning"], ["after", "PART 3 지도 인출 B25~B34 (180쪽)", RECALL, 306, "morning"], ["after", "명령어 요약 p.722~ 앞 절반", "명령어·옵션을 가리고 떠올리기 → 못 떠올린 것만 어휘장에 저장", 30, "glossary"], ["after", "기출 오답 다시 쓰기 · 네트워크 틀린 것 전부", WRONG, 120]],
+  "2026-11-05": [["after", "PART 4 지도 인출 B35~B44 (162쪽)", RECALL, 275, "morning"], ["after", "PART 5·6 지도 인출 B45~B50 (112쪽)", RECALL, 190, "morning"], ["after", "명령어 요약 뒤 절반", "명령어·옵션을 가리고 떠올리기 → 못 떠올린 것만 어휘장에 저장", 30, "glossary"], ["after", "기출 오답 다시 쓰기 · 애플리케이션·침해사고·일반·관리법규 틀린 것 전부", WRONG, 150], ["after", "실무형 주력 분야 확정", "기출 노트 과목 칩의 ❌ 수를 비교해 시스템·네트워크·침해사고 중 하나로. 모의고사 실무형은 이 분야 문제를 먼저 봐요", 20]],
+  "2026-11-06": [["after", "모의고사 1 (09:00~12:00 · 180분 · 종이에 손글씨)", MOCK, 180], ["after", "채점·복기 (13:00~15:00)", GRADE, 120], ["after", "정리 모음 PART 1·2 총정리 훑기 (344쪽)", SUM, 230, "notes"], ["after", "암기형 점검 ① 포트 번호 · 명령어 옵션", "명령어 요약 + 어휘장 '몰랐음'을 가리고 쓰기. 못 쓴 것만 카드로", 90, "glossary"]],
+  "2026-11-07": [["after", "모의 1 틀린 것 다시 쓰기 + 그 개념 블록 지도 인출", "틀린 문제를 책 덮고 다시 타이핑 → 해당 블록을 아침 복습에서 지도 인출", 240], ["after", "정리 모음 PART 3·4 총정리 훑기 (342쪽)", SUM, 230, "notes"], ["after", "기출 노트 틀린 것만 전체 1차", "과목 상관없이 ❌·⚠️ 남은 것 전부 → 다시 타이핑 → ✅/❌", 180]],
+  "2026-11-08": [["after", "모의고사 2 (09:00~12:00)", MOCK, 180], ["after", "채점·복기 (13:00~15:00)", GRADE, 120], ["after", "정리 모음 PART 5·6 총정리 훑기 (172쪽)", SUM, 120, "notes"], ["after", "암기형 점검 ② 법 조항 숫자 · Snort·iptables 문법", "법규 단답 틀린 것 다시 + Snort/iptables 룰을 백지에 써 보기", 150, "glossary"], ["after", "기출 노트 ☆ 문제 전부", "안 배운 주제로 미뤄 둔 ☆ 문제를 풀고 ☆ 해제", 60]],
+  "2026-11-09": [["after", "모의 2 틀린 것 다시 쓰기 + 블록 지도 인출", "틀린 문제를 책 덮고 다시 타이핑 → 해당 블록 지도 인출", 240], ["after", "자주 틀린 칸 전체 인출", "기록·백업 '자주 틀린 칸' 상위 30 + 헷갈리는 쌍 전체 → 책 덮고 쓰기", 180, "records"], ["after", "기출 노트 틀린 것만 전체 2차", "1차에서 또 ❌인 것만 → 다시 타이핑 → 답안 뼈대 외우기", 180]],
+  "2026-11-10": [["after", "모의고사 3 (09:00~12:00)", MOCK, 180], ["after", "채점·복기 (13:00~15:00)", GRADE, 120], ["after", "정리 모음 PART 1~3 총정리 2차 (빨간 칸 블록만)", "정리 모음에서 인출 기록이 빨간 블록만 골라 🧾 총정리 → 지도 인출", 180, "notes"], ["after", "암기형 점검 ③ 실무형 주력 분야 답안 뼈대 5개", "기출 노트 → 주력 과목 실무형 → AI 정리의 답안 뼈대 5개를 백지에 그대로 쓸 때까지", 120]],
+  "2026-11-11": [["after", "모의 3 틀린 것 다시 쓰기 + 블록 지도 인출", "틀린 문제를 책 덮고 다시 타이핑 → 해당 블록 지도 인출", 240], ["after", "정리 모음 PART 4~6 총정리 2차 (빨간 칸 블록만)", "정리 모음에서 인출 기록이 빨간 블록만 골라 🧾 총정리 → 지도 인출", 180, "notes"], ["after", "기출 노트 틀린 것만 전체 3차", "2차에서도 ❌인 것만. 답안 뼈대를 소리 내어 말하기", 120]],
+  "2026-11-12": [["after", "모의고사 4 (09:00~12:00)", MOCK, 180], ["after", "채점·복기 (13:00~15:00)", GRADE, 120], ["after", "헷갈리는 쌍 전체 + 어휘장 몰랐음 전부", "쌍마다 차이 한 줄 말하기, 어휘는 내 말로 설명", 180, "pairs"], ["after", "약점 카드 만들기 (모의 1~4 틀린 것 모음)", "기출 노트 → '틀린 것만' → .md 내보내기 → 내일 읽을 것", 60]],
   "2026-11-13": [["after", "명령어 요약 전체 + 포트·옵션·조항 카드 (08:00~12:00)", "가리고 쓰기만. 새 내용은 안 봐요", 240, "glossary"], ["after", "약점 카드 읽기 (14:00~16:00)", "어제 내보낸 .md를 읽기만. 16시에 끝, 22시 전 취침. 신분증·수험표·검은 볼펜", 120]],
 };
 const VIEW_NAME = { past: "기출 노트", morning: "아침 복습", notes: "정리 모음", glossary: "어휘장", records: "기록·백업", pairs: "헷갈리는 쌍" };
-const VIEW_ICON = { past: "📝", morning: "🗺", notes: "🗂", glossary: "📇", records: "📊", pairs: "⚖️" };
 // 확인 지점: 이 날 밤까지 (해당 블록까지 완료 + 그 과목 문제편 체크)
-const CHECKS = { "2026-10-26": ["B13", "시스템 기출(단답·서술·실무) 끝 + B13"], "2026-10-29": ["B26", "네트워크 기출 끝 + B26"], "2026-11-01": ["B42", "애플리케이션 기출 끝 + B42"] };
+const CHECKS = { "2026-10-26": ["B17", "시스템 기출(단답·서술·실무) 끝 + B17"], "2026-10-28": ["B24", "네트워크 기출 끝"], "2026-10-30": ["B34", "애플리케이션 기출 끝"], "2026-11-01": ["B47", "침해사고 기출 끝 + B47"] };
 function probMin(date) { return (PROB[date] || []).reduce((x, p) => x + p[3], 0); }
 // 할 일 행 (문제편 · 퀴즈) — 오늘 탭과 전체 일정 탭에서 같이 써요. 체크는 S.notes["ev:날짜"]에 남아요
 function evDone(date, k) { const ev = S.notes["ev:" + date]; return !!(ev && ev[k]); }
@@ -758,21 +765,31 @@ function taskRow(date, k, tm, title, desc, btn) {
 }
 function probRows(date, which) {
   return (PROB[date] || []).map((p, i) => [i, ...p]).filter(([, o]) => which === "all" || o === which)
-    .map(([i, o, title, desc, mins, view]) => { const v = view || "past"; return taskRow(date, "p" + i, "", `${VIEW_ICON[v] || ""} ${title} · ${fmtMin(mins)}`, desc, h("button", { class: "btn ghost small", onclick: () => go(v) }, VIEW_NAME[v] || v)); });
+    .map(([i, o, title, desc, mins, view]) => { const v = view || "past"; return taskRow(date, "p" + i, "", `${title} · ${fmtMin(mins)}`, desc, h("button", { class: "btn ghost small", onclick: () => go(v) }, VIEW_NAME[v] || v)); });
+}
+// 전체 일정용 칩: 문제편(파랑) · 지도 인출(초록) · 오답·암기(노랑) · 모의고사(빨강) · 총정리 등(회색)
+function probKind(title, view) { if (/모의고사/.test(title)) return "mock"; if (/오답|암기형|틀린 것만|☆ 문제|약점 카드/.test(title)) return "wrong"; if ((view || "past") === "past") return "prob"; if (view === "morning") return "recall"; return "review"; }
+function probChips(date, which) {
+  return (PROB[date] || []).filter(p => which === "all" || p[0] === which)
+    .map(([o, title, desc, mins, view]) => { const v = view || "past"; return h("button", { class: "pc " + probKind(title, v), title: desc + " · " + fmtMin(mins), onclick: () => go(v) }, title + " · " + fmtMin(mins)); });
+}
+function wrongChip(date) {
+  if (date < "2026-10-25" || date > "2026-11-02") return null;
+  return h("button", { class: "pc wrong", title: "기출 노트 '틀린 것만'에서 2 ~ 3문제를 책 덮고 다시 타이핑 → AI 정리와 비교 → ✅/❌", onclick: () => go("past") }, "기출 오답 다시 쓰기 · 30분");
 }
 function wrongRow(date) {
-  if (date < "2026-10-25" || date > "2026-11-04") return null;
-  return taskRow(date, "w", "", "📝 기출 오답 다시 쓰기 · 30분", "기출 노트 '틀린 것만'에서 2 ~ 3문제를 책 덮고 다시 타이핑 → AI 정리와 비교 → ✅/❌", h("button", { class: "btn ghost small", onclick: () => go("past") }, "기출 노트"));
+  if (date < "2026-10-25" || date > "2026-11-02") return null;
+  return taskRow(date, "w", "", "기출 오답 다시 쓰기 · 30분", "기출 노트 '틀린 것만'에서 2 ~ 3문제를 책 덮고 다시 타이핑 → AI 정리와 비교 → ✅/❌", h("button", { class: "btn ghost small", onclick: () => go("past") }, "기출 노트"));
 }
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.24-8";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.24-10";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 날짜별 안내 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-24": ["1회독 1일차 · 14시 시작 (10.23 못 함)", "오늘은 B1~B6만 (7시간 35분). 저녁은 30분 안에, 기출 없음 (B1~B6 단답은 내일 시스템 단답에 포함). 끝나면 내일 B7 ① 구조를 미리 만들어 둬요. 23:00 넘으면 B6는 ④ 인출만 하고 끝"],
   "2026-11-14": ["🔐 시험", "정보보안기사 실기 (신분증 · 수험표 · 검은 볼펜)"],
 };
-const readRate = b => b && /훑기/.test(b.title) ? 1.5 : 2.5;   // 쪽당 읽기 분 (훑기 블록은 1.5분). 0.5분은 ③ 정리 공부로
-function stepMins(b) { if (b && /30분 훑기/.test(b.title)) return [5, 10, 5, 8, 2]; const p = b ? b.pn : 20; return [p < 10 ? 5 : 10, Math.round(p * readRate(b)), Math.max(3, Math.round(p * 0.5)), Math.max(8, p), 5]; }
+const readRate = b => b && /훑기/.test(b.title) ? 1.5 : 2.0;   // 쪽당 읽기 분 (훑기 블록은 1.5분). 10.24 밤 개정: 2.5 → 2.0
+function stepMins(b) { if (b && /30분 훑기/.test(b.title)) return [5, 10, 5, 8, 2]; const p = b ? b.pn : 20; return [p < 10 ? 5 : 10, Math.round(p * readRate(b)), Math.max(3, Math.round(p * 0.3)), Math.max(8, Math.round(p * 0.8)), 5]; }
 function blockMin(b) { return stepMins(b).reduce((a, x) => a + x, 0); }
 function fmtMin(x) { const hh = Math.floor(x / 60), mm = x % 60; return hh ? hh + "시간" + (mm ? " " + mm + "분" : "") : mm + "분"; }
 const STEPS = [
@@ -1072,9 +1089,9 @@ function viewNotes(main) {
 
 // ───────── 전체 일정: 회독 흐름 + 날짜별 할 일 ─────────
 const PHASES = [
-  ["1회독", "2026-10-24", "2026-11-04", "PART별 이론 → 기출 · 이론 블록(B1~B50)이 PART 하나 끝날 때마다 그 과목 문제편 단답·서술·실무 전부 (10.24는 14시부터)"],
-  ["2회독", "2026-11-05", "2026-11-07", "지도 인출 + 기출 오답 · PART별 지도 인출(쪽당 1.7분) → 틀린 칸만 이론편 + 명령어 요약 + 과목별 기출 ❌ 다시 쓰기"],
-  ["3회독", "2026-11-08", "2026-11-13", "실전 · 모의고사 3회(11.08·11.10·11.12, 문제편에서 뽑은 세트) + 정리 모음 총정리 + 암기형 점검 + 틀린 것만 2회"],
+  ["1회독", "2026-10-24", "2026-11-02", "PART별 이론 → 기출 · 이론 블록(B1~B50)이 PART 하나 끝날 때마다 그 과목 문제편 단답·서술·실무 전부 (10.24는 14시부터)"],
+  ["2회독", "2026-11-03", "2026-11-05", "지도 인출 + 기출 오답 · PART별 지도 인출(쪽당 1.7분) → 틀린 칸만 이론편 + 명령어 요약 + 과목별 기출 틀린 것 다시 쓰기"],
+  ["3회독", "2026-11-06", "2026-11-13", "실전 · 모의고사 4회(11.06·08·10·12, 문제편에서 뽑은 세트) + 총정리 2바퀴 + 암기형 점검 3회 + 틀린 것만 3회"],
   ["시험", "2026-11-14", "2026-11-14", "🔐 정보보안기사 실기 (신분증 · 수험표 · 검은 볼펜)"],
 ];
 function viewPlan(main) {
@@ -1098,10 +1115,10 @@ function viewPlan(main) {
       const dn = bs.filter(b => isDone(b.id)).length;
       body.append(h("div", {}, h("b", {}, bs.length ? `${bs[0].id} ~ ${bs[bs.length - 1].id}` : (phase ? phase[0] + " 할 일" : "할 일")),
         h("span", { class: "small muted" }, (bs.length ? ` · 이론 ${pages}쪽 · 블록 ${fmtMin(mins)} · ${dn}/${bs.length} 완료` : "") + (pm ? (bs.length ? ` · 문제편 ${fmtMin(pm)}` : ` · 합계 ${fmtMin(pm)}`) : "") + (bs.length && pm ? ` · 합계 ${fmtMin(mins + pm)}` : ""))));
-      const bef = probRows(d, "before"); if (bef.length) body.append(h("div", { class: "tasks" }, bef));
-      if (bs.length) body.append(h("div", { class: "bl" }, bs.map(b => h("button", { class: isDone(b.id) ? "done" : "", title: b.title, onclick: () => { studyId = b.id; studyStep = 0; timerSet(0); go("study"); } },
-        (isDone(b.id) ? "✓ " : "") + b.id + " " + b.title.replace(/^(★\s*)?S\d+\s*·?\s*/, (m, star) => star ? "★" : "")))));
-      body.append(h("div", { class: "tasks", style: "margin-top:8px" }, probRows(d, "after"), wrongRow(d)));
+      body.append(h("div", { class: "bl" }, probChips(d, "before"),
+        bs.map(b => h("button", { class: isDone(b.id) ? "done" : "", title: b.title, onclick: () => { studyId = b.id; studyStep = 0; timerSet(0); go("study"); } },
+          (isDone(b.id) ? "✓ " : "") + b.id + " " + b.title.replace(/^(★\s*)?S\d+\s*·?\s*/, (m, star) => star ? "★" : ""))),
+        probChips(d, "after"), wrongChip(d)));
     }
     if (PLAN[d]) body.append(h("div", {}, h("b", {}, PLAN[d][0]), " · ", PLAN[d][1]));
     if (CHECKS[d]) body.append(h("div", { class: "small", style: "color:var(--warn);margin-top:4px" }, "⚠️ 확인 지점: 이날 밤까지 " + CHECKS[d][1]));
@@ -1128,7 +1145,7 @@ function viewToday(main) {
     const upto = BLOCKS.slice(0, BLOCKS.findIndex(b => b.id === ck[0]) + 1);
     const ok = upto.every(b => isDone(b.id));
     card.append(h("div", { class: "callout" + (ok ? " ok" : "") }, ok ? `✅ 확인 지점: ${ck[0]}까지 완료. 문제편 체크까지 됐으면 계획 그대로 가요.`
-      : `⚠️ 확인 지점: ${CHECKS[t] ? "오늘" : "어제"} 밤까지 ${ck[1]}. 못 끝냈으면 서술·실무는 홀수 번호만 풀고(짝수는 2회독 오답 시간에), 이론 블록은 ② 읽기를 ★만으로 줄여요. 끝 날짜(11.04)는 안 밀어요.`));
+      : `⚠️ 확인 지점: ${CHECKS[t] ? "오늘" : "어제"} 밤까지 ${ck[1]}. 못 끝냈으면 서술·실무는 홀수 번호만 풀고(짝수는 2회독 오답 시간에), 이론 블록은 ② 읽기를 ★만으로 줄여요. 끝 날짜(11.02)는 안 밀어요.`));
   }
   if (PLAN[t]) card.append(h("div", { class: "callout info" }, h("b", {}, PLAN[t][0]), " · ", PLAN[t][1]));
   if (!todays.length) {
@@ -2520,7 +2537,7 @@ function viewMorning(main) {
     parts.map(p => h("option", { value: "part:" + p, selected: morningDate === "part:" + p ? "" : false }, `총정리 · ${p} 전체`)));
   const list = morningDate.startsWith("part:") ? BLOCKS.filter(b => b.part === morningDate.slice(5)) : BLOCKS.filter(b => b.date === morningDate);
   const card = h("div", { class: "card" }, h("h2", {}, "아침 복습 · 총정리"),
-    h("p", { class: "small muted" }, "아침에는 어제 블록을, 2회독(11.05~11.07)에는 PART 전체를 골라서 트리를 다시 채워요. 결과는 기록에 남고, 자주 틀린 칸은 저녁 퀴즈에서 먼저 나와요."),
+    h("p", { class: "small muted" }, "아침에는 어제 블록을, 2회독(11.03~11.05)에는 PART 전체를 골라서 트리를 다시 채워요. 결과는 기록에 남고, 자주 틀린 칸은 저녁 퀴즈에서 먼저 나와요."),
     h("div", { class: "row" }, h("b", {}, "범위"), sel));
   main.append(card);
   if (!list.length) { main.append(h("div", { class: "card" }, "그 날짜에는 블록이 없어요.")); return; }
@@ -2859,6 +2876,11 @@ let pastEdit = null;    // 고치는 중인 항목 id
 let pastFormOpen = true;
 function pastPrompt(e) {
   const ctx = e.block && S.blocks[e.block] && S.blocks[e.block].outline ? blockContext([e.block]) + "\n\n---\n\n" : "";
+  if (e.type === "단답" && /\n/.test(e.q + e.ans)) return ctx + `[단답형 기출 묶음] ${e.part} · 문제편 p.${e.page || "?"}${e.no ? " " + e.no : ""}\n줄마다 한 문제예요. 번호가 같은 줄끼리 맞춰 봐.\n\n[문제]\n${e.q}\n\n[내 답]\n${e.mine || "(안 씀)"}\n\n[정답·해설]\n${e.ans || "(아직 안 붙여 넣음)"}\n\n` +
+    "1. **채점** — 문제마다 한 줄: \"- n번: ✅ 또는 ❌ (내 답 → 정답)\". 표현이 달라도 뜻이 같으면 ✅.\n" +
+    "2. **틀린 것만 설명** — ❌ 문제마다 2 ~ 3줄: 정답이 왜 그건지(뭐야 → 어떻게 → 왜), 내 답이 가리키는 개념과의 차이, 외울 것 한 줄.\n" +
+    "3. **이 묶음에서 외울 것** — 숫자·명령어·옵션·조항만 모아서 5줄 안쪽.\n" +
+    "4. **❌ 번호 목록** — 마지막 줄에 \"❌: 3, 7, 12\" 형식으로.";
   const self = (e.self || []).length ? `\n[내가 스스로 체크한 칸] ${e.self.map(i => FOUR[i]).join(", ")} — 이 칸은 내 답에 넣었다고 생각해. 정말 들어갔는지 봐 줘.` : "";
   return ctx + `[기출 문제] ${e.part} ${e.type}형 · 문제편 p.${e.page || "?"}${e.no ? " " + e.no + "번" : ""}\n${e.q}\n\n[내가 쓴 답]\n${e.mine || "(안 씀 — 모르는 문제였음)"}${self}\n\n[교재 정답·해설]\n${e.ans || "(아직 안 붙여 넣음 — 네가 아는 범위에서 답하고, 확실하지 않으면 표시해)"}\n\n` +
     "위 자료로 아래 순서대로 정리해 줘. 교재 해설이 기준이고 해설에 없는 내용은 지어내지 마. 각 항목은 짧게. 항목 제목은 그대로 써.\n" +
@@ -2871,13 +2893,14 @@ function pastPrompt(e) {
 }
 // AI 정리의 네 칸 줄에서 ✅⚠️❌ 읽기 → ["ok"|"part"|"bad"|""] 4개
 function pastGrid(e) {
-  const out = ["", "", "", ""]; if (!e.ai) return out;
+  const out = ["", "", "", ""]; if (!e.ai || e.type === "단답") return out;
   const lines = e.ai.split("\n").filter(l => /[✅⚠️❌]/.test(l));
   FOUR_RE.forEach((re, i) => { const l = lines.find(x => re.test(x)); if (l) out[i] = /✅/.test(l) ? "ok" : /❌/.test(l) ? "bad" : "part"; });
   return out;
 }
 function fourEl(e, big) { const g = pastGrid(e); return h("span", { class: "pq-four" + (big ? " big" : ""), title: FOUR.map((f, i) => f + " " + ({ ok: "✅", part: "⚠️", bad: "❌" }[g[i]] || "–")).join(" · ") }, g.map((s, i) => h("span", { class: s }, big ? FOUR[i] : ""))); }
-function pastWrong(e) { const r = e.retry || []; if (r.length) return !r[r.length - 1].ok; const g = pastGrid(e); return g.includes("bad") || g.includes("part"); }
+function pastXCount(e) { return e.type === "단답" && e.ai ? (e.ai.match(/❌/g) || []).length : 0; }
+function pastWrong(e) { const r = e.retry || []; if (r.length) return !r[r.length - 1].ok; if (e.type === "단답") return pastXCount(e) > 0; const g = pastGrid(e); return g.includes("bad") || g.includes("part"); }
 function pastList(f) {
   const qq = (f.q || "").toLowerCase();
   return S.past.filter(e => (!f.part || e.part === f.part) && (!f.type || e.type === f.type) &&
@@ -2948,10 +2971,11 @@ function viewPast(main) {
   const blockSel = h("select", {}, h("option", { value: "" }, "관련 블록 (고르면 내 지도도 같이 봐요)"),
     parts.map(p => h("optgroup", { label: p }, BLOCKS.filter(b => b.part === p).map(b => h("option", { value: b.id, selected: d.block === b.id ? "" : false }, `${b.id} ${b.title.replace(/^★\s*/, "").replace(/^S\d+\s*·?\s*/, "").slice(0, 34)}`)))));
   blockSel.addEventListener("change", () => { d.block = blockSel.value; const b = BLOCK[d.block]; if (b && PART_OF_BLOCK[b.part] && PART_OF_BLOCK[b.part] !== d.part) { d.part = PART_OF_BLOCK[b.part]; render(); } });
-  const q = autosize(bind(h("textarea", { class: "pq-ta", placeholder: "문제를 적어요. 사진 찍어 옮기기 귀찮으면 요지만 적어도 돼요. (예: SetUID 비트의 보안상 위험과 점검 명령을 쓰시오)" }, d.q), "q"));
-  const mine = autosize(bind(h("textarea", { class: "pq-ta", placeholder: d.type === "단답" ? "내 답 (책 덮고)" : "책 덮고 답안을 끝까지 타이핑해요. 네 칸(정의 → 동작 → 왜·위험 → 점검·대응) 순서로 쓰면 빠진 칸이 바로 보여요." }, d.mine), "mine"));
+  const isDan = d.type === "단답";
+  const q = autosize(bind(h("textarea", { class: "pq-ta", placeholder: isDan ? "한 줄에 한 문제, 번호를 붙여요. 요지만 적어도 돼요.\n1) SetUID 비트 8진수 값\n2) 로그인 실패 기록 파일(리눅스)\n3) …" : "문제를 적어요. 사진 찍어 옮기기 귀찮으면 요지만 적어도 돼요. (예: SetUID 비트의 보안상 위험과 점검 명령을 쓰시오)" }, d.q), "q"));
+  const mine = autosize(bind(h("textarea", { class: "pq-ta", placeholder: isDan ? "번호 맞춰 한 줄에 하나. 모르면 ?\n1) 4000\n2) ?\n3) …" : "책 덮고 답안을 끝까지 타이핑해요. 네 칸(정의 → 동작 → 왜·위험 → 점검·대응) 순서로 쓰면 빠진 칸이 바로 보여요." }, d.mine), "mine"));
   const cnt = h("span", { class: "small muted" }); const paintCnt = () => cnt.textContent = d.mine ? `${d.mine.replace(/\s/g, "").length}자` : ""; mine.addEventListener("input", paintCnt); paintCnt();
-  const ans = autosize(bind(h("textarea", { class: "pq-ta", placeholder: "교재 정답·해설 — 핵심 문장만 붙여 넣어도 돼요. 비워 두고 저장하면 나중에 채울 수 있어요." }, d.ans), "ans"));
+  const ans = autosize(bind(h("textarea", { class: "pq-ta", placeholder: isDan ? "번호 맞춰 정답 + 해설 한마디\n1) 4000 — 소유자 권한으로 실행, find -perm -4000\n2) /var/log/btmp — lastb로 확인\n3) …" : "교재 정답·해설 — 핵심 문장만 붙여 넣어도 돼요. 비워 두고 저장하면 나중에 채울 수 있어요." }, d.ans), "ans"));
   const star = bind(h("input", { type: "checkbox" }), "star"); star.checked = !!d.star;
   const selfChips = h("div", { class: "row", style: "gap:4px;margin-top:6px" }, h("span", { class: "small muted" }, "내 답에 넣은 칸:"),
     FOUR.map((f, i) => { const c = h("button", { class: "chip tog" + (d.self.includes(i) ? " sel" : ""), type: "button" }, f); c.addEventListener("click", () => { d.self = d.self.includes(i) ? d.self.filter(x => x !== i) : [...d.self, i].sort(); c.classList.toggle("sel"); }); return c; }));
@@ -2977,16 +3001,16 @@ function viewPast(main) {
   const step = (n, label, extra) => h("div", { class: "pq-step" }, h("i", {}, String(n)), h("span", {}, label), extra || null);
   const form = h("div", { class: "pq-form" + (pastFormOpen ? "" : " hidden") },
     h("div", { class: "row" }, partSel, typeSel, page, no, blockSel),
-    step(1, "문제"), q,
-    step(2, d.type === "단답" ? "내 답 (책 덮고)" : "내 답 — 책 덮고 끝까지 타이핑", timerRow), mine,
-    h("div", { class: "row", style: "justify-content:space-between" }, selfChips, cnt),
-    step(3, "교재 정답·해설"), ans,
+    step(1, isDan ? "문제 묶음 (한 줄 = 한 문제, 쪽 단위로 10 ~ 15문제)" : "문제"), q,
+    step(2, isDan ? "내 답 (책 덮고, 번호 맞춰 한 줄씩)" : "내 답 — 책 덮고 끝까지 타이핑", timerRow), mine,
+    isDan ? null : h("div", { class: "row", style: "justify-content:space-between" }, selfChips, cnt),
+    step(3, isDan ? "정답 + 해설 한마디 (번호 맞춰)" : "교재 정답·해설"), ans,
     h("div", { class: "pq-actions" },
       aiOn() ? h("button", { class: "btn", onclick: () => submit(true) }, "저장 + 🤖 AI 정리") : null,
       h("button", { class: "btn ghost", onclick: () => submit(false) }, "저장만"),
       h("label", { class: "row small", style: "gap:6px;cursor:pointer;margin-left:4px" }, star, "☆ 아직 안 배운 주제"),
       h("button", { class: "btn ghost small", style: "margin-left:auto", onclick: () => { if (!d.q && !d.mine && !d.ans) return; if (!confirm("적던 내용을 비울까요?")) return; pastDraft = { part: d.part, type: d.type, page: d.page, no: d.no, block: d.block, q: "", mine: "", ans: "", star: false, self: [] }; pastTimer = null; render(); } }, "비우기")),
-    h("p", { class: "small muted", style: "margin:6px 0 0" }, aiOn() ? "Ctrl+Enter = 저장 + AI 정리. " : "AI 정리는 기록·백업 탭에서 키를 넣으면 켜져요. ", "저장하면 과목·유형·쪽은 남고 번호는 +1 돼요."));
+    h("p", { class: "small muted", style: "margin:6px 0 0" }, aiOn() ? "Ctrl+Enter = 저장 + AI 정리. " : "AI 정리는 기록·백업 탭에서 키를 넣으면 켜져요. ", "저장하면 과목·유형·쪽은 남고 번호는 +1 돼요. 단답형은 쪽 단위로 묶어 저장하고, AI가 번호별로 채점해서 틀린 것만 설명해요."));
   main.append(h("div", { class: "card" },
     h("div", { class: "row", style: "justify-content:space-between;align-items:center" },
       h("h2", { style: "margin:0" }, "📝 기출 노트 · 새 문제"),
@@ -3026,7 +3050,7 @@ function pastCard(e) {
     h("span", { class: "pq-badge " + tcls + (last && last.ok ? " done" : "") }, e.type),
     h("div", { class: "nb-main" }, h("div", { class: "nb-title" }, e.q.split("\n")[0].slice(0, 80)),
       h("div", { class: "nb-meta" }, `${e.part} · 문제편 p.${e.page || "?"}${e.no ? " " + e.no + "번" : ""} · ${fmtDate(e.date)}${e.block ? " · " + e.block : ""}`)),
-    h("div", { class: "nb-chips" }, e.ai ? fourEl(e) : h("span", { class: "chip gray" }, "AI 정리 없음"), e.star ? h("span", { class: "chip warn" }, "☆") : null,
+    h("div", { class: "nb-chips" }, !e.ai ? h("span", { class: "chip gray" }, "AI 정리 없음") : e.type === "단답" ? h("span", { class: "chip " + (pastXCount(e) ? "bad" : "ok") }, pastXCount(e) ? `❌ ${pastXCount(e)}개` : "전부 ✅") : fourEl(e), e.star ? h("span", { class: "chip warn" }, "☆") : null,
       last ? h("span", { class: "chip " + (last.ok ? "ok" : "bad") }, "다시 " + (last.ok ? "✅" : "❌")) : null),
     h("span", { class: "nb-caret", "aria-hidden": "true" }, "›")));
   const sec = (title, el, open) => { const x = h("details", { class: "nb-sec" }, h("summary", {}, title), h("div", { class: "nb-body" }, el)); x.open = !!open; return x; };
@@ -3040,7 +3064,7 @@ function pastCard(e) {
         h("button", { class: "btn ghost small", onclick: () => { pastEdit = null; render(); } }, "취소")));
     det.append(inner); det.open = true; return det;
   }
-  if (e.ai) inner.append(h("div", { class: "pq-fourline" }, fourEl(e, true)));
+  if (e.ai && e.type !== "단답") inner.append(h("div", { class: "pq-fourline" }, fourEl(e, true)));
   inner.append(sec("문제", pre(e.q), true),
     sec("내 답" + ((e.self || []).length ? " · 내가 체크한 칸: " + e.self.map(i => FOUR[i]).join(", ") : ""), pre(e.mine || "(안 씀)"), !e.ai),
     sec("교재 정답·해설", pre(e.ans || "(없음)"), false));
@@ -3077,19 +3101,19 @@ function viewHelp(main) {
     h("h3", {}, "블록 하나 (20쪽 기준 1시간 35분, 쪽수에 따라 늘고 줄어요)"),
     h("ol", {},
       h("li", {}, h("b", {}, "① 구조 10분 (10쪽 미만 5분)"), ": 블록 범위를 넘기며 굵은 소제목만 적어 지도를 만들어요."),
-      h("li", {}, h("b", {}, "② 읽기 쪽수 × 2.5분 (훑기 블록은 1.5분)"), ": 지도를 옆에 두고 읽으면서 칸마다 키워드 2~3개를 적어요. ★ 부분만 꼼꼼히 읽어요."),
-      h("li", {}, h("b", {}, "③ 정리 공부 쪽수 × 0.5분 (최소 3분)"), ": 내 키워드로 AI가 만든 총정리를 읽고 칸마다 뭐야·어떻게·왜를 속으로 말해 봐요."),
-      h("li", {}, h("b", {}, "④ 인출 쪽수 × 1분 (최소 8분)"), ": 책을 덮고 빈 지도에 키워드를 다시 써요 → 채점 → 빠진 칸만 책에서 확인해요."),
+      h("li", {}, h("b", {}, "② 읽기 쪽수 × 2.0분 (훑기 블록은 1.5분)"), ": 지도를 옆에 두고 읽으면서 칸마다 키워드 2~3개를 적어요. ★ 부분만 꼼꼼히 읽어요."),
+      h("li", {}, h("b", {}, "③ 정리 공부 쪽수 × 0.3분 (최소 3분)"), ": 내 키워드로 AI가 만든 총정리를 읽고 칸마다 뭐야·어떻게·왜를 속으로 말해 봐요."),
+      h("li", {}, h("b", {}, "④ 인출 쪽수 × 0.8분 (최소 8분)"), ": 책을 덮고 빈 지도에 키워드를 다시 써요 → 채점 → 빠진 칸만 책에서 확인해요."),
       h("li", {}, h("b", {}, "⑤ 휴식 5분"))),
     h("h3", {}, "기출 노트 (문제편 = 과목별 기출문제집)"),
     h("ul", {},
       h("li", {}, "저녁 기출을 풀 때 ", h("b", {}, "문제 → 책 덮고 내 답 뼈대 → 교재 정답·해설"), "을 붙여 넣고 ", h("b", {}, "저장 + 🤖 AI 정리"), ". 네 칸(정의·동작·왜·대응) 채점, 실기 답안 뼈대, 이론 연결, 헷갈리는 것, 변형 출제, 외울 것 한 줄이 나와요. 아래 칸에서 이어서 물어볼 수 있어요."),
       h("li", {}, "관련 블록을 고르면 AI가 내 지도·키워드를 같이 보고 설명해요. 모르는 문제는 ", h("b", {}, "☆"), " 체크하고 비워 둔 채 저장해도 돼요."),
-      h("li", {}, "2회독(11.05~)·3회독에 ", h("b", {}, "\"틀린 것만\""), "으로 걸러서 다시 써 보고 ✅/❌를 남겨요. 기록은 이 컴퓨터(와 동기화)에 저장되고, ", h("b", {}, ".md로 내보내기"), "로 파일로도 남겨요. 내보낸 파일을 OneDrive \"일정 관리\" 폴더에 두면 Claude Code에서 바로 읽고 같이 정리할 수 있어요.")),
+      h("li", {}, "2회독(11.03~)·3회독에 ", h("b", {}, "\"틀린 것만\""), "으로 걸러서 다시 써 보고 ✅/❌를 남겨요. 기록은 이 컴퓨터(와 동기화)에 저장되고, ", h("b", {}, ".md로 내보내기"), "로 파일로도 남겨요. 내보낸 파일을 OneDrive \"일정 관리\" 폴더에 두면 Claude Code에서 바로 읽고 같이 정리할 수 있어요.")),
     h("h3", {}, "하루"),
     h("ul", {},
       h("li", {}, "07:00 ", h("b", {}, "아침 복습"), " 30분: 어제 블록 지도를 다시 채워요."),
-      h("li", {}, "07:30 ~ ", h("b", {}, "오늘 할 일(이론 블록 + 문제편)을 순서대로"), " 약 10.5 ~ 11.7시간 (\"오늘\" 탭에 블록별 시간이 나와요)"),
+      h("li", {}, "07:30 ~ ", h("b", {}, "오늘 할 일(이론 블록 + 문제편)을 순서대로"), " 약 11 ~ 12.5시간 (\"오늘\" 탭에 블록별 시간이 나와요)"),
       h("li", {}, "끝나면 ", h("b", {}, "기출 오답 다시 쓰기"), " 30분: 기출 노트 \"틀린 것만\" 2 ~ 3문제를 책 덮고 다시 타이핑. (저녁 퀴즈 탭은 남겨 뒀지만 일정에는 없어요)"),
       h("li", {}, h("b", {}, "문제편(기출)"), "은 PART 이론이 끝난 날 그 과목 단답 → 서술 → 실무 순서로 전부 (\"오늘\" 탭에 쪽수가 나와요). 기출 노트에 저장 + AI 정리 · 23:30 취침"),
       h("li", {}, "하루 끝: ", h("b", {}, "기록·백업 → 백업 내보내기"))),
