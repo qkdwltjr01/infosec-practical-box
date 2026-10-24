@@ -152,8 +152,18 @@ code { font-family: var(--font-mono); font-size: .92em; background: var(--surfac
 .dday span { font-size: 11px; color: var(--text-3); }
 .progress { height: 4px; border-radius: 2px; background: var(--surface-2); margin: 10px 0 0; overflow: hidden; }
 .progress > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 2px; transition: width .4s ease; }
-nav#nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 8px 0 10px; margin: 0 -2px; }
-nav#nav::-webkit-scrollbar { display: none; }
+.navwrap { position: relative; }
+nav#nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; padding: 8px 0 8px; margin: 0 -2px; scroll-behavior: smooth; }
+nav#nav::-webkit-scrollbar { height: 4px; }
+nav#nav::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+nav#nav::-webkit-scrollbar-track { background: transparent; }
+.nav-arr { position: absolute; top: 8px; width: 30px; height: 32px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; cursor: pointer; display: none; place-items: center; z-index: 2; box-shadow: var(--shadow-1); color: var(--text-2); font: inherit; font-size: 20px; line-height: 1; padding: 0 0 2px; }
+.nav-arr:hover { color: var(--text); background: var(--surface-2); }
+.nav-arr.l { left: -4px; } .nav-arr.r { right: -4px; }
+.navwrap.can-l .nav-arr.l, .navwrap.can-r .nav-arr.r { display: grid; }
+.navwrap.can-l::before, .navwrap.can-r::after { content: ""; position: absolute; top: 0; bottom: 0; width: 36px; pointer-events: none; z-index: 1; }
+.navwrap.can-l::before { left: 0; background: linear-gradient(90deg, var(--surface), transparent); }
+.navwrap.can-r::after { right: 0; background: linear-gradient(270deg, var(--surface), transparent); }
 nav#nav button {
   flex: none; border: 1px solid transparent; background: transparent; color: var(--text-2);
   padding: 6px 12px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 550; white-space: nowrap;
@@ -244,6 +254,36 @@ label.row { gap: 8px; cursor: pointer; color: var(--text-2); }
 .task:first-child { border-top: 0; }
 .task .tm { font-variant-numeric: tabular-nums; font-weight: 650; color: var(--text-3); min-width: 46px; font-size: 13.5px; }
 .task.done b { text-decoration: line-through; color: var(--text-3); }
+/* 기출 노트 */
+.pq-step { display: flex; align-items: center; gap: 8px; margin: 14px 0 6px; font-weight: 650; flex-wrap: wrap; }
+.pq-step i { width: 22px; height: 22px; border-radius: 50%; background: var(--text); color: var(--bg); display: grid; place-items: center; font-style: normal; font-size: 12px; flex: none; }
+.pq-step > .row { margin-left: auto; }
+.pq-ta { min-height: 80px; overflow: hidden; }
+.pq-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.chip.tog { cursor: pointer; font: inherit; font-size: 12.5px; background: var(--surface-2); color: var(--text-2); border-color: var(--line); margin: 0; }
+.chip.tog.sel { background: var(--text); color: var(--bg); border-color: var(--text); }
+.pq-timer { font-variant-numeric: tabular-nums; font-weight: 650; font-size: 13px; color: var(--text-2); }
+.pq-timer.soon { color: var(--warn); } .pq-timer.over { color: var(--bad); }
+.pq-today { display: grid; gap: 6px; margin-top: 10px; }
+.pq-trow { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: var(--r-md); background: var(--bg); flex-wrap: wrap; }
+.pq-trow.done { opacity: .72; } .pq-trow.done b { text-decoration: line-through; }
+.pq-tdot { width: 26px; height: 26px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; color: var(--text-2); }
+.pq-trow.done .pq-tdot { background: var(--ok-wash); color: var(--ok); }
+.pq-badge { font-size: 12px; font-weight: 700; border-radius: 8px; padding: 4px 8px; min-width: 34px; text-align: center; }
+.pq-badge.dan { background: var(--surface-2); color: var(--text-2); } .pq-badge.seo { background: var(--accent-wash); color: var(--accent); } .pq-badge.sil { background: var(--warn-wash); color: var(--warn); }
+.pq-badge.done { background: var(--ok-wash); color: var(--ok); }
+.pq-four { display: inline-grid; grid-template-columns: repeat(4, 1fr); gap: 3px; vertical-align: middle; }
+.pq-four > span { width: 14px; height: 14px; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--line); }
+.pq-four > span.ok { background: var(--ok); border-color: var(--ok); } .pq-four > span.part { background: var(--warn); border-color: var(--warn); } .pq-four > span.bad { background: var(--bad); border-color: var(--bad); }
+.pq-fourline { margin: 4px 0 10px; }
+.pq-four.big { gap: 6px; width: 100%; }
+.pq-four.big > span { width: auto; height: auto; padding: 6px 4px; text-align: center; font-size: 12px; font-weight: 650; color: var(--text-2); }
+.pq-four.big > span.ok, .pq-four.big > span.part, .pq-four.big > span.bad { color: #fff; }
+.pq-stats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pq-stat { display: inline-flex; gap: 6px; align-items: baseline; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12.5px; cursor: pointer; color: var(--text-2); }
+.pq-stat b { color: var(--text); } .pq-stat .bad { color: var(--bad); font-weight: 600; }
+.pq-stat.on { border-color: var(--text); background: var(--text); color: var(--bg); } .pq-stat.on b, .pq-stat.on .bad { color: var(--bg); }
+@media (max-width: 640px) { .pq-step > .row { margin-left: 0; width: 100%; } .nb-sum { grid-template-columns: auto 1fr auto; } .pq-card .nb-chips { grid-column: 2 / -1; justify-content: flex-start; } }
 .task input[type=checkbox] { margin: 0; flex: none; align-self: center; }
 
 /* ============================================================
@@ -605,6 +645,7 @@ th { white-space: nowrap; }
     <div class="dday"><b id="ddayNum"></b><span>11.14(토) 실기</span></div>
   </div>
   <div class="progress" title="1회독 진행"><i id="progBar"></i></div>
+  <div class="navwrap" id="navwrap"><button class="nav-arr l" type="button" aria-label="탭 왼쪽으로">‹</button>
   <nav id="nav">
     <button data-view="today">오늘</button>
     <button data-view="plan">전체 일정</button>
@@ -617,7 +658,7 @@ th { white-space: nowrap; }
     <button data-view="pairs">헷갈리는 쌍</button>
     <button data-view="records">기록·백업</button>
     <button data-view="help">사용법</button>
-  </nav>
+  </nav><button class="nav-arr r" type="button" aria-label="탭 오른쪽으로">›</button></div>
 </header>
 
 
@@ -716,7 +757,7 @@ function quizRow(date) {
     h("button", { class: "btn ghost small", onclick: () => { Q = null; go("quiz"); } }, "열기"));
 }
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.24-6";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.24-7";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-24": ["1회독 1일차 · 14시 시작 (10.23 못 함)", "오늘은 B1~B6만 (7시간 35분). 저녁은 30분 안에, 퀴즈 40분만, 기출 없음 (B1~B6 단답은 내일 시스템 단답에 포함). 23:00 넘으면 B6는 ④ 인출만 하고 끝"],
@@ -931,10 +972,17 @@ let view = "today";
 let studyId = null, studyStep = 0;
 function go(v) { view = v; render(); }
 document.getElementById("nav").addEventListener("click", e => { const v = e.target.dataset?.view; if (v) go(v); });
+(function navSetup() {
+  const nav = document.getElementById("nav"), wrap = document.getElementById("navwrap"); if (!nav || !wrap) return;
+  const upd = () => { wrap.classList.toggle("can-l", nav.scrollLeft > 4); wrap.classList.toggle("can-r", nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4); };
+  nav.addEventListener("scroll", upd); window.addEventListener("resize", upd); setTimeout(upd, 0); setTimeout(upd, 400);
+  nav.addEventListener("wheel", e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && nav.scrollWidth > nav.clientWidth) { nav.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+  wrap.querySelectorAll(".nav-arr").forEach(b => b.addEventListener("click", () => nav.scrollBy({ left: b.classList.contains("l") ? -240 : 240, behavior: "smooth" })));
+})();
 
 function render() {
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.view === view));
-  const on = document.querySelector("#nav button.on"); if (on && on.scrollIntoView) on.scrollIntoView({ block: "nearest", inline: "nearest" });
+  const on = document.querySelector("#nav button.on"); if (on) { const nav = on.parentElement; const x = on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2; nav.scrollTo({ left: Math.max(0, x), behavior: "smooth" }); }
   const done = BLOCKS.filter(b => isDone(b.id)).length;
   const d = dday();
   $("#headerSub").textContent = `${fmtDate(todayStr())} · 1회독 ${done}/${BLOCKS.length} 블록 · v${APP_VER}`;
@@ -2800,117 +2848,221 @@ function viewRecords(main) {
 // ───────── 기출 노트: 문제편(과목별 기출) 풀고 교재 해설 + AI 정리 저장 ─────────
 const PAST_PARTS = ["시스템", "네트워크", "애플리케이션", "침해사고", "정보보안 일반", "관리·법규"];
 const PAST_TYPES = ["단답", "서술", "실무"];
+const PART_OF_BLOCK = { "PART 1 시스템": "시스템", "PART 2 네트워크": "네트워크", "PART 3 애플리케이션": "애플리케이션", "PART 4 침해사고": "침해사고", "PART 5 관리": "관리·법규", "PART 6 법규": "관리·법규" };
+const FOUR = ["정의", "동작·원리", "왜·위험", "점검·대응"];
+const FOUR_RE = [/정의/, /동작|원리/, /왜|위험/, /점검|대응/];
+const TYPE_MIN = { "단답": 0, "서술": 8, "실무": 10 };   // 책 덮고 답 쓰는 시간(분)
 let pastFilter = { part: "", type: "", only: "", q: "" };
 let pastDraft = null;   // 폼에 쓰던 내용 (탭을 옮겨도 남아요)
 let pastAIFor = null;   // 저장 직후 AI 정리를 자동으로 돌릴 항목
+let pastTimer = null;   // { end, total }
+let pastEdit = null;    // 고치는 중인 항목 id
+let pastFormOpen = true;
 function pastPrompt(e) {
   const ctx = e.block && S.blocks[e.block] && S.blocks[e.block].outline ? blockContext([e.block]) + "\n\n---\n\n" : "";
-  return ctx + `[기출 문제] ${e.part} ${e.type}형 · 문제편 p.${e.page || "?"}${e.no ? " " + e.no + "번" : ""}\n${e.q}\n\n[내가 쓴 답 뼈대]\n${e.mine || "(안 씀 — 모르는 문제였음)"}\n\n[교재 정답·해설]\n${e.ans || "(아직 안 붙여 넣음 — 네가 아는 범위에서 답하고, 확실하지 않으면 표시해)"}\n\n` +
-    "위 자료로 아래 순서대로 정리해 줘. 교재 해설이 기준이고 해설에 없는 내용은 지어내지 마. 각 항목은 짧게.\n" +
-    "1. **네 칸 채점** — 정의 / 동작·원리 / 왜·위험 / 점검·대응 네 칸마다 ✅(있음) ⚠️(부족) ❌(빠짐)과 무엇이 빠졌는지 한 줄씩. 내 답이 비어 있으면 네 칸 다 ❌로 두고 그 칸에 들어갈 내용만 적어.\n" +
+  const self = (e.self || []).length ? `\n[내가 스스로 체크한 칸] ${e.self.map(i => FOUR[i]).join(", ")} — 이 칸은 내 답에 넣었다고 생각해. 정말 들어갔는지 봐 줘.` : "";
+  return ctx + `[기출 문제] ${e.part} ${e.type}형 · 문제편 p.${e.page || "?"}${e.no ? " " + e.no + "번" : ""}\n${e.q}\n\n[내가 쓴 답]\n${e.mine || "(안 씀 — 모르는 문제였음)"}${self}\n\n[교재 정답·해설]\n${e.ans || "(아직 안 붙여 넣음 — 네가 아는 범위에서 답하고, 확실하지 않으면 표시해)"}\n\n` +
+    "위 자료로 아래 순서대로 정리해 줘. 교재 해설이 기준이고 해설에 없는 내용은 지어내지 마. 각 항목은 짧게. 항목 제목은 그대로 써.\n" +
+    "1. **네 칸 채점** — 네 줄로, 줄마다 \"- 정의: ✅/⚠️/❌ 한 줄 설명\", \"- 동작·원리: …\", \"- 왜·위험: …\", \"- 점검·대응: …\". 내 답이 비어 있으면 네 칸 다 ❌로 두고 그 칸에 들어갈 내용만 적어.\n" +
     `2. **실기 답안 뼈대** — 시험지에 그대로 쓸 수 있게 ${e.type === "단답" ? "정답 한 줄 + 왜 그게 답인지 한 줄" : "3 ~ 5줄 (채점자가 찾는 핵심어는 굵게)"}.\n` +
     "3. **이론 연결** — 이 문제가 이론편의 어느 개념에서 나왔는지, 그 개념을 뭐야 → 어떻게 → 왜 순서로 쉬운 말로 3 ~ 5줄. 내 지도 키워드가 있으면 그 칸 이름을 같이 적어.\n" +
     "4. **헷갈리기 쉬운 것** — 비슷한 개념 하나와 차이 한 줄.\n" +
     "5. **변형 출제** — 같은 개념을 다른 식으로 묻는 문제 1개와 답 한 줄.\n" +
     "6. **외울 것 한 줄** — 숫자·명령어·옵션·조항이 있으면 그걸로.";
 }
-function pastWrong(e) { const r = e.retry || []; return r.length ? !r[r.length - 1].ok : !!(e.ai && /❌/.test(e.ai)); }
+// AI 정리의 네 칸 줄에서 ✅⚠️❌ 읽기 → ["ok"|"part"|"bad"|""] 4개
+function pastGrid(e) {
+  const out = ["", "", "", ""]; if (!e.ai) return out;
+  const lines = e.ai.split("\n").filter(l => /[✅⚠️❌]/.test(l));
+  FOUR_RE.forEach((re, i) => { const l = lines.find(x => re.test(x)); if (l) out[i] = /✅/.test(l) ? "ok" : /❌/.test(l) ? "bad" : "part"; });
+  return out;
+}
+function fourEl(e, big) { const g = pastGrid(e); return h("span", { class: "pq-four" + (big ? " big" : ""), title: FOUR.map((f, i) => f + " " + ({ ok: "✅", part: "⚠️", bad: "❌" }[g[i]] || "–")).join(" · ") }, g.map((s, i) => h("span", { class: s }, big ? FOUR[i] : ""))); }
+function pastWrong(e) { const r = e.retry || []; if (r.length) return !r[r.length - 1].ok; const g = pastGrid(e); return g.includes("bad") || g.includes("part"); }
 function pastList(f) {
   const qq = (f.q || "").toLowerCase();
   return S.past.filter(e => (!f.part || e.part === f.part) && (!f.type || e.type === f.type) &&
-    (f.only !== "today" || e.date === todayStr()) && (f.only !== "wrong" || pastWrong(e)) && (f.only !== "star" || e.star) &&
+    (f.only !== "today" || e.date === todayStr()) && (f.only !== "wrong" || pastWrong(e)) && (f.only !== "star" || e.star) && (f.only !== "noai" || !e.ai) &&
     (!qq || [e.q, e.mine, e.ans, e.ai].join(" ").toLowerCase().includes(qq))).slice().reverse();
 }
 function pastMd(list) {
   const L = ["# 기출 노트 · " + fmtDate(todayStr()) + " 내보냄 (" + list.length + "문제)", "", "교재: 2026 알기사 실기 문제편. 네 칸 = 정의 · 동작 · 왜/위험 · 점검/대응.", ""];
   for (const e of list.slice().reverse()) {
+    const g = pastGrid(e);
     L.push(`## ${fmtDate(e.date)} · ${e.part} ${e.type}형 · 문제편 p.${e.page || "?"}${e.no ? " " + e.no + "번" : ""}${e.block ? " · " + e.block : ""}${e.star ? " · ☆ 안 배운 주제" : ""}`);
-    L.push("", "**문제**", "", e.q, "", "**내 답 뼈대**", "", e.mine || "(안 씀)", "", "**교재 정답·해설**", "", e.ans || "(없음)", "");
+    if (e.ai) L.push("", "네 칸: " + FOUR.map((f, i) => f + " " + ({ ok: "✅", part: "⚠️", bad: "❌" }[g[i]] || "–")).join(" · "));
+    L.push("", "**문제**", "", e.q, "", "**내 답**", "", e.mine || "(안 씀)", "", "**교재 정답·해설**", "", e.ans || "(없음)", "");
     if (e.ai) L.push("**AI 정리**", "", e.ai, "");
     if ((e.retry || []).length) L.push("다시 써 보기: " + e.retry.map(r => fmtDate(r.date) + (r.ok ? " ✅" : " ❌")).join(", "), "");
     L.push("---", "");
   }
   return L.join("\n");
 }
-function viewPast(main) {
-  const d = pastDraft || (pastDraft = { part: "시스템", type: "서술", page: "", no: "", block: "", q: "", mine: "", ans: "", star: false });
-  const bind = (el, k) => { el.addEventListener(el.type === "checkbox" ? "change" : "input", () => d[k] = el.type === "checkbox" ? el.checked : el.value); return el; };
-  const partSel = bind(h("select", {}, PAST_PARTS.map(p => h("option", { value: p, selected: d.part === p ? "" : false }, p))), "part");
-  const typeSel = bind(h("select", {}, PAST_TYPES.map(t => h("option", { value: t, selected: d.type === t ? "" : false }, t + "형"))), "type");
-  const page = bind(h("input", { type: "text", placeholder: "쪽", style: "width:64px", value: d.page }), "page");
-  const no = bind(h("input", { type: "text", placeholder: "번호", style: "width:64px", value: d.no }), "no");
-  const blockSel = bind(h("select", {}, h("option", { value: "" }, "관련 블록 (고르면 내 지도도 같이 봐요)"), BLOCKS.map(b => h("option", { value: b.id, selected: d.block === b.id ? "" : false }, `${b.id} ${b.title.replace(/^★\s*/, "").slice(0, 30)}`))), "block");
-  const q = bind(h("textarea", { placeholder: "문제 (사진 찍어 옮기기 귀찮으면 요지만 적어도 돼요)" }, d.q), "q");
-  const mine = bind(h("textarea", { placeholder: "내 답 뼈대 — 책 덮고 키워드로 5분. 모르면 비워 두고 ☆ 체크" }, d.mine), "mine");
-  const ans = bind(h("textarea", { placeholder: "교재 정답·해설 — 핵심 문장만 붙여 넣어도 돼요", style: "min-height:120px" }, d.ans), "ans");
-  const star = bind(h("input", { type: "checkbox" }), "star"); star.checked = !!d.star;
-  const submit = withAI => {
-    if (!d.q.trim()) { alertBox("문제를 적어 주세요."); return; }
-    if (withAI && !d.ans.trim() && !confirm("교재 해설 없이 AI 정리를 만들까요? 해설이 있어야 교재 기준으로 채점해요.")) return;
-    const e = { id: newId(), date: todayStr(), u: Date.now(), part: d.part, type: d.type, page: (d.page || "").trim(), no: (d.no || "").trim(), block: d.block, q: d.q.trim(), mine: (d.mine || "").trim(), ans: (d.ans || "").trim(), star: !!d.star, ai: "", retry: [] };
-    S.past.push(e); save();
-    pastDraft = { part: d.part, type: d.type, page: "", no: "", block: d.block, q: "", mine: "", ans: "", star: false };
-    if (withAI) { pastFilter = { part: "", type: "", only: "today", q: "" }; pastAIFor = e.id; }
-    render();
+function fmtClock(ms) { const s = Math.max(0, Math.round(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); }
+let pastTickH = null;
+function pastTick() {
+  clearInterval(pastTickH);
+  const paint = () => {
+    const el = document.getElementById("pqTimer"); if (!el) return;
+    if (!pastTimer) { el.textContent = ""; el.className = "pq-timer"; return; }
+    const left = pastTimer.end - Date.now();
+    if (left <= 0) { el.textContent = "⏰ 시간 끝 — 이제 책을 펴고 해설과 비교해요"; el.className = "pq-timer over"; clearInterval(pastTickH); return; }
+    el.textContent = "⏱ " + fmtClock(left) + " 남음 · 책 덮고 쓰는 중"; el.className = "pq-timer" + (left < 60000 ? " soon" : "");
   };
-  main.append(h("div", { class: "card" }, h("h2", {}, "📝 기출 노트"),
-    h("p", { class: "small" }, "문제편(= 과목별로 분류한 기출문제집)을 풀 때 써요. ", h("b", {}, "문제 → 책 덮고 내 답 뼈대 → 교재 정답·해설"), "을 붙여 넣고 저장하면 AI가 ", h("b", {}, "네 칸 채점 + 실기 답안 뼈대 + 이론 연결 + 변형 출제"), "를 만들어요. 이어서 물어볼 수도 있어요. 저장한 건 이 컴퓨터(와 동기화)에 남고, 아래에서 .md 파일로 내보내요."),
+  paint(); pastTickH = setInterval(paint, 500);
+}
+function autosize(ta) { const f = () => { ta.style.height = "auto"; ta.style.height = Math.min(600, Math.max(80, ta.scrollHeight + 2)) + "px"; }; ta.addEventListener("input", f); setTimeout(f, 0); return ta; }
+// 오늘 PROB 행 제목에서 과목·유형 읽기
+function probMeta(title) {
+  const part = PAST_PARTS.find(p => title.startsWith(p)) || (title.startsWith("정보보안") ? "정보보안 일반" : "");
+  const type = (title.match(/단답|서술|실무/) || ["서술"])[0];
+  const pg = title.match(/p\.(\d+)/);
+  return { part, type, page: pg ? pg[1] : "" };
+}
+function viewPast(main) {
+  const t = todayStr();
+  const d = pastDraft || (pastDraft = { part: "시스템", type: "서술", page: "", no: "", block: "", q: "", mine: "", ans: "", star: false, self: [] });
+  const todayN = S.past.filter(e => e.date === t).length;
+  // ── 오늘의 문제편
+  const rows = PROB[t] || [];
+  if (rows.length) {
+    const box = h("div", { class: "pq-today" });
+    rows.forEach((p, i) => {
+      const m = probMeta(p[1]);
+      const n = S.past.filter(e => e.date === t && e.part === m.part && e.type === m.type).length;
+      const done = evDone(t, "p" + i);
+      box.append(h("div", { class: "pq-trow" + (done ? " done" : "") },
+        h("span", { class: "pq-tdot" }, done ? "✓" : String(i + 1)),
+        h("div", { style: "flex:1;min-width:0" }, h("b", {}, p[1]), h("div", { class: "small muted" }, `${fmtMin(p[3])} · 오늘 저장 ${n}문제`)),
+        h("button", { class: "btn small" + (d.part === m.part && d.type === m.type ? "" : " ghost"), onclick: () => { Object.assign(d, { part: m.part, type: m.type, page: d.page || m.page }); pastFormOpen = true; render(); } }, "이 범위로 입력"),
+        h("button", { class: "btn ghost small", title: done ? "체크 풀기" : "다 했어요", onclick: () => evToggle(t, "p" + i) }, done ? "✓ 완료" : "완료")));
+    });
+    main.append(h("div", { class: "card" }, h("div", { class: "row", style: "justify-content:space-between;align-items:baseline" }, h("h2", { style: "margin:0" }, `📅 오늘의 문제편 · ${fmtDate(t)}`), h("span", { class: "pill today" }, `오늘 ${todayN}문제 저장`)), box));
+  }
+  // ── 입력 폼
+  const bind = (el, k) => { el.addEventListener(el.type === "checkbox" ? "change" : "input", () => d[k] = el.type === "checkbox" ? el.checked : el.value); return el; };
+  const partSel = h("select", {}, PAST_PARTS.map(p => h("option", { value: p, selected: d.part === p ? "" : false }, p)));
+  partSel.addEventListener("change", () => { d.part = partSel.value; render(); });
+  const typeSel = h("select", {}, PAST_TYPES.map(tp => h("option", { value: tp, selected: d.type === tp ? "" : false }, tp + "형")));
+  typeSel.addEventListener("change", () => { d.type = typeSel.value; pastTimer = null; render(); });
+  const page = bind(h("input", { type: "text", placeholder: "쪽", style: "width:64px", value: d.page, inputmode: "numeric" }), "page");
+  const no = bind(h("input", { type: "text", placeholder: "번호", style: "width:64px", value: d.no, inputmode: "numeric" }), "no");
+  const parts = [...new Set(BLOCKS.map(b => b.part))];
+  const blockSel = h("select", {}, h("option", { value: "" }, "관련 블록 (고르면 내 지도도 같이 봐요)"),
+    parts.map(p => h("optgroup", { label: p }, BLOCKS.filter(b => b.part === p).map(b => h("option", { value: b.id, selected: d.block === b.id ? "" : false }, `${b.id} ${b.title.replace(/^★\s*/, "").replace(/^S\d+\s*·?\s*/, "").slice(0, 34)}`)))));
+  blockSel.addEventListener("change", () => { d.block = blockSel.value; const b = BLOCK[d.block]; if (b && PART_OF_BLOCK[b.part] && PART_OF_BLOCK[b.part] !== d.part) { d.part = PART_OF_BLOCK[b.part]; render(); } });
+  const q = autosize(bind(h("textarea", { class: "pq-ta", placeholder: "문제를 적어요. 사진 찍어 옮기기 귀찮으면 요지만 적어도 돼요. (예: SetUID 비트의 보안상 위험과 점검 명령을 쓰시오)" }, d.q), "q"));
+  const mine = autosize(bind(h("textarea", { class: "pq-ta", placeholder: d.type === "단답" ? "내 답 (책 덮고)" : "책 덮고 답안을 끝까지 타이핑해요. 네 칸(정의 → 동작 → 왜·위험 → 점검·대응) 순서로 쓰면 빠진 칸이 바로 보여요." }, d.mine), "mine"));
+  const cnt = h("span", { class: "small muted" }); const paintCnt = () => cnt.textContent = d.mine ? `${d.mine.replace(/\s/g, "").length}자` : ""; mine.addEventListener("input", paintCnt); paintCnt();
+  const ans = autosize(bind(h("textarea", { class: "pq-ta", placeholder: "교재 정답·해설 — 핵심 문장만 붙여 넣어도 돼요. 비워 두고 저장하면 나중에 채울 수 있어요." }, d.ans), "ans"));
+  const star = bind(h("input", { type: "checkbox" }), "star"); star.checked = !!d.star;
+  const selfChips = h("div", { class: "row", style: "gap:4px;margin-top:6px" }, h("span", { class: "small muted" }, "내 답에 넣은 칸:"),
+    FOUR.map((f, i) => { const c = h("button", { class: "chip tog" + (d.self.includes(i) ? " sel" : ""), type: "button" }, f); c.addEventListener("click", () => { d.self = d.self.includes(i) ? d.self.filter(x => x !== i) : [...d.self, i].sort(); c.classList.toggle("sel"); }); return c; }));
+  const tmin = TYPE_MIN[d.type];
+  const timerRow = h("div", { class: "row", style: "gap:8px;align-items:center" },
+    tmin ? h("button", { class: "btn ghost small", type: "button", onclick: () => { pastTimer = { end: Date.now() + tmin * 60000, total: tmin * 60000 }; pastTick(); mine.focus(); } }, `⏱ ${tmin}분 재고 쓰기`) : null,
+    h("span", { id: "pqTimer", class: "pq-timer" }));
+  const submit = withAI => {
+    if (!d.q.trim()) { alertBox("문제를 적어 주세요."); q.focus(); return; }
+    if (withAI && !d.ans.trim() && !confirm("교재 해설 없이 AI 정리를 만들까요? 해설이 있어야 교재 기준으로 채점해요.")) return;
+    const e = { id: newId(), date: t, u: Date.now(), part: d.part, type: d.type, page: (d.page || "").trim(), no: (d.no || "").trim(), block: d.block, q: d.q.trim(), mine: (d.mine || "").trim(), ans: (d.ans || "").trim(), star: !!d.star, self: d.self.slice(), ai: "", retry: [] };
+    S.past.push(e); save();
+    const nextNo = /^\d+$/.test(e.no) ? String(+e.no + 1) : "";
+    pastDraft = { part: d.part, type: d.type, page: d.page, no: nextNo, block: d.block, q: "", mine: "", ans: "", star: false, self: [] };
+    pastTimer = null;
+    pastFilter = { part: "", type: "", only: "today", q: "" };
+    if (withAI) pastAIFor = e.id;
+    render();
+    alertBox(`저장했어요 (오늘 ${todayN + 1}문제)${withAI ? " · AI 정리를 만드는 중" : ""}. 다음 문제를 적으면 돼요.`);
+  };
+  const onKey = ev => { if ((ev.ctrlKey || ev.metaKey) && ev.key === "Enter") { ev.preventDefault(); submit(aiOn()); } };
+  [q, mine, ans].forEach(x => x.addEventListener("keydown", onKey));
+  const step = (n, label, extra) => h("div", { class: "pq-step" }, h("i", {}, String(n)), h("span", {}, label), extra || null);
+  const form = h("div", { class: "pq-form" + (pastFormOpen ? "" : " hidden") },
     h("div", { class: "row" }, partSel, typeSel, page, no, blockSel),
-    h("div", { class: "small muted", style: "margin:8px 0 2px" }, "문제"), q,
-    h("div", { class: "small muted", style: "margin:8px 0 2px" }, "내 답 뼈대 (책 덮고)"), mine,
-    h("div", { class: "small muted", style: "margin:8px 0 2px" }, "교재 정답·해설"), ans,
-    h("div", { class: "row", style: "margin-top:8px" },
-      h("label", { class: "row small", style: "gap:6px;cursor:pointer" }, star, "☆ 아직 안 배운 주제"),
+    step(1, "문제"), q,
+    step(2, d.type === "단답" ? "내 답 (책 덮고)" : "내 답 — 책 덮고 끝까지 타이핑", timerRow), mine,
+    h("div", { class: "row", style: "justify-content:space-between" }, selfChips, cnt),
+    step(3, "교재 정답·해설"), ans,
+    h("div", { class: "pq-actions" },
       aiOn() ? h("button", { class: "btn", onclick: () => submit(true) }, "저장 + 🤖 AI 정리") : null,
       h("button", { class: "btn ghost", onclick: () => submit(false) }, "저장만"),
-      aiOn() ? null : h("span", { class: "small muted" }, "AI 정리는 기록·백업 탭에서 키를 넣으면 켜져요"))));
+      h("label", { class: "row small", style: "gap:6px;cursor:pointer;margin-left:4px" }, star, "☆ 아직 안 배운 주제"),
+      h("button", { class: "btn ghost small", style: "margin-left:auto", onclick: () => { if (!d.q && !d.mine && !d.ans) return; if (!confirm("적던 내용을 비울까요?")) return; pastDraft = { part: d.part, type: d.type, page: d.page, no: d.no, block: d.block, q: "", mine: "", ans: "", star: false, self: [] }; pastTimer = null; render(); } }, "비우기")),
+    h("p", { class: "small muted", style: "margin:6px 0 0" }, aiOn() ? "Ctrl+Enter = 저장 + AI 정리. " : "AI 정리는 기록·백업 탭에서 키를 넣으면 켜져요. ", "저장하면 과목·유형·쪽은 남고 번호는 +1 돼요."));
+  main.append(h("div", { class: "card" },
+    h("div", { class: "row", style: "justify-content:space-between;align-items:center" },
+      h("h2", { style: "margin:0" }, "📝 기출 노트 · 새 문제"),
+      h("button", { class: "btn ghost small", onclick: () => { pastFormOpen = !pastFormOpen; render(); } }, pastFormOpen ? "접기" : "펼치기")),
+    pastFormOpen ? h("p", { class: "small", style: "margin:6px 0 0" }, "문제편(= 과목별 기출문제집)을 풀 때 써요. ", h("b", {}, "문제 → 책 덮고 내 답 → 교재 정답·해설"), " 순서로 넣고 저장하면 AI가 ", h("b", {}, "네 칸 채점 · 실기 답안 뼈대 · 이론 연결 · 변형 출제"), "를 만들어요.") : null,
+    form));
+  if (pastTimer) pastTick();
+  // ── 통계 + 목록
   const f = pastFilter;
-  const fsel = (k, opts) => h("select", { onchange: ev => { pastFilter[k] = ev.target.value; render(); } }, opts.map(([v, t]) => h("option", { value: v, selected: f[k] === v ? "" : false }, t)));
+  const items = pastList(f);
+  const stats = PAST_PARTS.map(p => { const L = S.past.filter(e => e.part === p); return [p, L.length, L.filter(pastWrong).length]; }).filter(([, n]) => n);
+  const fsel = (k, opts) => h("select", { onchange: ev => { pastFilter[k] = ev.target.value; render(); } }, opts.map(([v, tx]) => h("option", { value: v, selected: f[k] === v ? "" : false }, tx)));
+  const quick = (v, tx) => h("button", { class: "chip tog" + (f.only === v ? " sel" : ""), onclick: () => { pastFilter.only = f.only === v ? "" : v; render(); } }, tx);
   const fq = h("input", { type: "text", placeholder: "🔍 검색", style: "flex:1;min-width:120px", value: f.q });
   let tq; fq.addEventListener("input", () => { clearTimeout(tq); tq = setTimeout(() => { pastFilter.q = fq.value.trim(); render(); }, 300); });
-  const items = pastList(f);
-  const wrong = S.past.filter(pastWrong).length;
-  main.append(h("div", { class: "card" }, h("h2", {}, `저장한 기출 (${S.past.length}문제${wrong ? " · 빠진 칸·틀림 " + wrong : ""})`),
-    h("div", { class: "row" },
-      fsel("part", [["", "전체 과목"], ...PAST_PARTS.map(p => [p, p])]), fsel("type", [["", "전체 유형"], ...PAST_TYPES.map(t => [t, t + "형"])]),
-      fsel("only", [["", "전부"], ["today", "오늘"], ["wrong", "틀린 것만"], ["star", "☆만"]]), fq,
+  const wrongN = S.past.filter(pastWrong).length;
+  main.append(h("div", { class: "card" },
+    h("div", { class: "row", style: "justify-content:space-between;align-items:baseline" }, h("h2", { style: "margin:0" }, `저장한 기출 ${S.past.length}문제`),
+      h("span", { class: "small muted" }, wrongN ? `빠진 칸·틀림 ${wrongN} · ` : "", `오늘 ${todayN}`)),
+    stats.length ? h("div", { class: "pq-stats" }, stats.map(([p, n, w]) => h("button", { class: "pq-stat" + (f.part === p ? " on" : ""), onclick: () => { pastFilter.part = f.part === p ? "" : p; render(); } }, h("b", {}, p), h("span", {}, `${n}`), w ? h("span", { class: "bad" }, `❌${w}`) : null))) : null,
+    h("div", { class: "row", style: "margin-top:8px" }, quick("today", "오늘"), quick("wrong", "틀린 것만"), quick("star", "☆"), quick("noai", "AI 정리 없음"),
+      fsel("type", [["", "전체 유형"], ...PAST_TYPES.map(tp => [tp, tp + "형"])]), fq,
       h("button", { class: "btn ghost small", onclick: () => {
         const list = pastList(pastFilter); if (!list.length) { alertBox("내보낼 기출이 없어요."); return; }
-        const url = URL.createObjectURL(new Blob(["\ufeff" + pastMd(list)], { type: "text/markdown;charset=utf-8" }));
-        const a = h("a", { href: url, download: `기출노트_${todayStr()}${f.part ? "_" + f.part : ""}.md` }); document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+        const url = URL.createObjectURL(new Blob(["﻿" + pastMd(list)], { type: "text/markdown;charset=utf-8" }));
+        const a = h("a", { href: url, download: `기출노트_${t}${f.part ? "_" + f.part : ""}.md` }); document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(url);
         alertBox("다운로드 폴더에 .md로 저장했어요. OneDrive '일정 관리' 폴더로 옮겨 두면 Claude Code에서 바로 읽을 수 있어요.");
-      } }, "📄 .md로 내보내기")),
-    items.length ? null : h("p", { class: "muted", style: "margin-top:8px" }, S.past.length ? "조건에 맞는 기출이 없어요." : "아직 저장한 기출이 없어요. 위에서 첫 문제를 넣어 보세요.")));
+      } }, "📄 .md 내보내기")),
+    items.length ? null : h("p", { class: "muted", style: "margin-top:10px" }, S.past.length ? "조건에 맞는 기출이 없어요." : "아직 저장한 기출이 없어요. 위에서 첫 문제를 넣어 보세요.")));
   for (const e of items) main.append(pastCard(e));
 }
 function pastCard(e) {
-  const det = h("details", { class: "card nb" });
+  const det = h("details", { class: "card nb pq-card" });
   const last = (e.retry || []).slice(-1)[0];
+  const tcls = { "단답": "dan", "서술": "seo", "실무": "sil" }[e.type] || "";
   det.append(h("summary", { class: "nb-sum" },
-    h("span", { class: "nb-id" + (last && last.ok ? " done" : "") }, e.type),
-    h("div", { class: "nb-main" }, h("div", { class: "nb-title" }, e.q.split("\n")[0].slice(0, 70)),
-      h("div", { class: "nb-meta" }, `${fmtDate(e.date)} · ${e.part} · 문제편 p.${e.page || "?"}${e.no ? " " + e.no + "번" : ""}${e.block ? " · " + e.block : ""}`)),
-    h("div", { class: "nb-chips" }, e.star ? h("span", { class: "chip warn" }, "☆") : null, e.ai ? h("span", { class: "chip ok" }, "AI 정리") : null,
-      last ? h("span", { class: "chip " + (last.ok ? "ok" : "bad") }, "다시 " + (last.ok ? "✅" : "❌")) : pastWrong(e) ? h("span", { class: "chip bad" }, "빠진 칸") : null),
+    h("span", { class: "pq-badge " + tcls + (last && last.ok ? " done" : "") }, e.type),
+    h("div", { class: "nb-main" }, h("div", { class: "nb-title" }, e.q.split("\n")[0].slice(0, 80)),
+      h("div", { class: "nb-meta" }, `${e.part} · 문제편 p.${e.page || "?"}${e.no ? " " + e.no + "번" : ""} · ${fmtDate(e.date)}${e.block ? " · " + e.block : ""}`)),
+    h("div", { class: "nb-chips" }, e.ai ? fourEl(e) : h("span", { class: "chip gray" }, "AI 정리 없음"), e.star ? h("span", { class: "chip warn" }, "☆") : null,
+      last ? h("span", { class: "chip " + (last.ok ? "ok" : "bad") }, "다시 " + (last.ok ? "✅" : "❌")) : null),
     h("span", { class: "nb-caret", "aria-hidden": "true" }, "›")));
   const sec = (title, el, open) => { const x = h("details", { class: "nb-sec" }, h("summary", {}, title), h("div", { class: "nb-body" }, el)); x.open = !!open; return x; };
-  const pre = t => h("div", { style: "white-space:pre-wrap" }, t);
+  const pre = tx => h("div", { style: "white-space:pre-wrap" }, tx);
   const inner = h("div", { class: "nb-inner" });
-  inner.append(sec("문제", pre(e.q), true), sec("내 답 뼈대", pre(e.mine || "(안 씀)"), false), sec("교재 정답·해설", pre(e.ans || "(없음)"), false));
+  if (pastEdit === e.id) {
+    const eq = autosize(h("textarea", { class: "pq-ta" }, e.q)), em = autosize(h("textarea", { class: "pq-ta" }, e.mine)), ea = autosize(h("textarea", { class: "pq-ta" }, e.ans));
+    inner.append(h("div", { class: "small muted" }, "문제"), eq, h("div", { class: "small muted", style: "margin-top:8px" }, "내 답"), em, h("div", { class: "small muted", style: "margin-top:8px" }, "교재 정답·해설"), ea,
+      h("div", { class: "nb-actions" },
+        h("button", { class: "btn small", onclick: () => { e.q = eq.value.trim() || e.q; e.mine = em.value.trim(); e.ans = ea.value.trim(); e.u = Date.now(); pastEdit = null; save(); render(); } }, "저장"),
+        h("button", { class: "btn ghost small", onclick: () => { pastEdit = null; render(); } }, "취소")));
+    det.append(inner); det.open = true; return det;
+  }
+  if (e.ai) inner.append(h("div", { class: "pq-fourline" }, fourEl(e, true)));
+  inner.append(sec("문제", pre(e.q), true),
+    sec("내 답" + ((e.self || []).length ? " · 내가 체크한 칸: " + e.self.map(i => FOUR[i]).join(", ") : ""), pre(e.mine || "(안 씀)"), !e.ai),
+    sec("교재 정답·해설", pre(e.ans || "(없음)"), false));
   const aiBox = h("div");
   if (e.ai) aiBox.append(sec("🤖 AI 정리", aiDiv(e.ai), true));
   inner.append(aiBox);
   const runAI = btn => {
     if (btn) btn.disabled = true;
-    const th = aiThread(pastPrompt(e), { block: e.block || undefined, onAnswer: ans => { e.ai = ans.join("\n\n---\n\n"); e.u = Date.now(); save(); } });
+    const th = aiThread(pastPrompt(e), { block: e.block || undefined, onAnswer: ans => { e.ai = ans.join("\n\n---\n\n"); e.u = Date.now(); save(); const fl = inner.querySelector(".pq-fourline"); const nl = h("div", { class: "pq-fourline" }, fourEl(e, true)); if (fl) fl.replaceWith(nl); else inner.prepend(nl); } });
     aiBox.replaceChildren(sec("🤖 AI 정리", th, true));
   };
   const mark = ok => { e.retry = e.retry || []; e.retry.push({ date: todayStr(), ok }); e.u = Date.now(); save(); render(); };
   inner.append(h("div", { class: "nb-actions" },
     aiOn() ? h("button", { class: "btn small", onclick: ev => runAI(ev.target) }, e.ai ? "🤖 다시 정리 · 이어서 묻기" : "🤖 AI 정리 만들기") : null,
-    h("button", { class: "btn ghost small", onclick: () => mark(true) }, "다시 써 봤다 ✅ 맞음"),
+    h("button", { class: "btn ghost small", onclick: () => mark(true) }, "다시 써 봤다 ✅"),
     h("button", { class: "btn ghost small", onclick: () => mark(false) }, "❌ 또 틀림"),
-    h("button", { class: "btn ghost small", onclick: () => { if (!confirm("이 기출 기록을 지울까요?")) return; S.past = S.past.filter(x => x !== e); S.tomb["q:" + e.id] = Date.now(); save(); render(); } }, "삭제")));
+    h("button", { class: "btn ghost small", onclick: () => { pastEdit = e.id; render(); } }, "✏️ 고치기"),
+    h("button", { class: "btn ghost small", onclick: () => { e.star = !e.star; e.u = Date.now(); save(); render(); } }, e.star ? "☆ 해제" : "☆ 표시"),
+    h("button", { class: "btn ghost small", style: "margin-left:auto", onclick: () => { if (!confirm("이 기출 기록을 지울까요?")) return; S.past = S.past.filter(x => x !== e); S.tomb["q:" + e.id] = Date.now(); save(); render(); } }, "삭제")));
   det.append(inner);
   if (pastAIFor === e.id) { det.open = true; pastAIFor = null; setTimeout(() => runAI(null), 0); }
   return det;
