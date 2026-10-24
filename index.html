@@ -243,6 +243,8 @@ label.row { gap: 8px; cursor: pointer; color: var(--text-2); }
 .task { display: flex; gap: 12px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line-soft); }
 .task:first-child { border-top: 0; }
 .task .tm { font-variant-numeric: tabular-nums; font-weight: 650; color: var(--text-3); min-width: 46px; font-size: 13.5px; }
+.task.done b { text-decoration: line-through; color: var(--text-3); }
+.task input[type=checkbox] { margin: 0; flex: none; align-self: center; }
 
 /* ============================================================
    블록 공부: 머리 · 단계 · 타이머
@@ -678,8 +680,38 @@ const BLOCKS = [
   ["B50","2026-10-29","PART 6 법규","S18 · 6. 전자서명법, 7. 위치정보법 + PART 5·6 트리","835~끝",[666,686]],
 ].map(([id,date,part,title,pages,dan]) => { const [ps, pe] = pages.split("~"); const pn = (pe === "끝" ? 850 : +pe) - +ps + 1; return {id,date,part,title: title.replace("✂️", "✂"),pages,dan,pn}; });
 const BLOCK = Object.fromEntries(BLOCKS.map(b => [b.id, b]));
+
+// 날짜별 저녁 서술·실무 기출 (일별계획.md "1회독 저녁 서술·실무 기출" 표와 같음)
+const ESSAY_DAY = {
+  "2026-10-25": ["기출 서술 1 + 실무 1 (30분) · 시스템 서술 p.80~99 · 실무 p.100~137", "서버 보안(PAM·로그·접근 통제), 시스템 해킹, UNIX·윈도우 취약점 점검 항목"],
+  "2026-10-26": ["기출 서술 1문제만 (15분, 블록 12시간 날) · 네트워크 서술 p.226~283", "스니핑·포트 스캔·DoS/DDoS·VPN·SSL/TLS 중 하나"],
+  "2026-10-27": ["기출 서술 1 + 실무 1 (30분) · 애플리케이션 서술 p.388~417 · 실무 p.418~449", "DNS, SQL Injection, XSS·CSRF, 파일 업로드, 아파치 설정·웹 로그 분석"],
+  "2026-10-28": ["기출 서술 1 + 실무 1 (30분) · 침해사고 서술 p.525~549 · 실무 p.550~583", "Snort 룰, iptables 룰, 침해 시나리오(리버스 셸·루트킷·악성코드 분석)"],
+  "2026-10-29": ["기출 서술 1 + 실무 1 (30분) · 관리/법규 서술 p.687~703 · 실무 p.704~721 (일반 p.600~609도 가능)", "위험관리(위험 분석·DoA), ISMS-P, 개인정보 보호법·안전성 확보조치"],
+};
+// 저녁 할 일 (퀴즈 · 기출 단답 · 기출 서술·실무) — 오늘 탭과 전체 일정 탭에서 같이 써요. 체크는 S.notes["ev:날짜"]에 남아요
+function evDone(date, k) { const ev = S.notes["ev:" + date]; return !!(ev && ev[k]); }
+function evToggle(date, k) { const ev = Object.assign({}, S.notes["ev:" + date] || {}); ev[k] = !ev[k]; ev.u = Date.now(); S.notes["ev:" + date] = ev; save(); render(); }
+function eveningTasks(date, bs) {
+  const box = h("div", { class: "tasks", style: "margin-top:8px" });
+  const long = bs.reduce((x, b) => x + blockMin(b), 0) > 630;
+  const row = (k, tm, title, desc, btn) => {
+    const cb = h("input", { type: "checkbox", title: "했으면 체크" }); cb.checked = evDone(date, k); cb.addEventListener("change", () => evToggle(date, k));
+    return h("div", { class: "task" + (cb.checked ? " done" : "") }, h("span", { class: "tm" }, tm), cb,
+      h("div", { style: "flex:1" }, h("b", {}, title), h("div", { class: "small muted" }, desc)), btn || null);
+  };
+  const first = date === "2026-10-24";
+  box.append(row("q", "블록 끝", "저녁 퀴즈 40분", first ? "오늘은 퀴즈까지만 (기출 없음 · B1~B6 단답은 10.30에)" : "오늘 칸과 어휘를 섞은 AI 실기형 문제 → 풀고 채점",
+    h("button", { class: "btn ghost small", onclick: () => { Q = null; go("quiz"); } }, "열기")));
+  if (first) return box;
+  box.append(row("d", "+40분", `기출 단답형 ${long ? 30 : 45}분 (문제편)`, bs.map(b => `${b.id} ${danHalf(b)}`).join(" · ") + " — 블록 배정량의 앞 절반. 안 배운 주제는 ☆만 치고 넘어가요"));
+  const ed = ESSAY_DAY[date];
+  if (ed) box.append(row("e", long ? "+70분" : "+85분", ed[0], "고를 주제: " + ed[1] + " · 문제 읽기 → 책 덮고 답 뼈대 5분 → 해설과 네 칸 비교 5분 → 빠진 칸 지도에 추가 → 기출 노트에 저장 + AI 정리",
+    h("button", { class: "btn ghost small", onclick: () => go("past") }, "기출 노트")));
+  return box;
+}
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.24-3";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.24-4";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 2~4회독 날짜별 할 일 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-24": ["1회독 1일차 · 14시 시작 (10.23 못 함)", "오늘은 B1~B6만 (7시간 35분). 저녁은 30분 안에, 퀴즈 40분만, 기출 없음 (B1~B6 단답은 10.30에). 23:00 넘으면 B6는 ④ 인출만 하고 끝"],
@@ -1032,8 +1064,7 @@ function viewPlan(main) {
       body.append(h("div", {}, h("b", {}, `${bs[0].id} ~ ${bs[bs.length - 1].id}`), h("span", { class: "small muted" }, ` · 이론 ${pages}쪽 · 블록 ${fmtMin(mins)} · ${dn}/${bs.length} 완료`)),
         h("div", { class: "bl" }, bs.map(b => h("button", { class: isDone(b.id) ? "done" : "", title: b.title, onclick: () => { studyId = b.id; studyStep = 0; timerSet(0); go("study"); } },
           (isDone(b.id) ? "✓ " : "") + b.id + " " + b.title.replace(/^(★\s*)?S\d+\s*·?\s*/, (m, star) => star ? "★" : "")))),
-        h("div", { class: "small muted", style: "margin-top:4px" }, "저녁: 퀴즈 40분 + 기출 단답 " + bs.map(danHalf).join(", ")),
-        essayFor(bs) ? h("div", { class: "small muted" }, "기출 " + essayFor(bs)) : "");
+        eveningTasks(d, bs));
     }
     if (PLAN[d]) body.append(h("div", {}, h("b", {}, PLAN[d][0]), " · ", PLAN[d][1]));
     if (d === "2026-10-26") body.append(h("div", { class: "small", style: "color:var(--warn);margin-top:4px" }, "⚠️ 확인 지점: 이날 밤까지 B24 (PART 2 끝)"));
@@ -1088,14 +1119,7 @@ function viewToday(main) {
     h("div", { style: "flex:1" }, h("b", {}, "아침 복습"), h("div", { class: "small muted" }, `어제(${fmtDate(y)}) ${yb.map(b => b.id).join(", ")} 지도 다시 채우기`)),
     h("button", { class: "btn ghost small", onclick: () => { morningDate = y; morningIdx = 0; go("morning"); } }, "열기")));
   if (todays.length) {
-    tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "18:30"),
-      h("div", { style: "flex:1" }, h("b", {}, "저녁 퀴즈"), h("div", { class: "small muted" }, "오늘 칸과 어휘를 섞어서 떠올리기 (1시간)")),
-      h("button", { class: "btn ghost small", onclick: () => { Q = null; go("quiz"); } }, "열기")));
-    tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "19:30"),
-      h("div", { style: "flex:1" }, h("b", {}, "기출 단답형 (문제편)"), h("div", { class: "small muted" }, todays.map(b => `${b.id} ${danHalf(b)}`).join(" · ") + " — 배정량의 앞 절반 (30분)"))));
-    if (essayFor(todays)) tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "20:15"),
-      h("div", { style: "flex:1" }, h("b", {}, "기출 서술·실무 (문제편)"), h("div", { class: "small muted" }, essayFor(todays) + " · 문제 읽기 → 책 덮고 답 뼈대 키워드 5분 → 해설과 네 칸 비교 5분 → 빠진 칸 지도에 추가. 문제·내 답·해설은 기출 노트에 저장하고 AI 정리를 받아요")),
-      h("button", { class: "btn ghost small", onclick: () => go("past") }, "기출 노트")));
+    for (const r of [...eveningTasks(todayStr(), todays).childNodes]) tasks.append(r);
     tasks.append(h("div", { class: "task" }, h("span", { class: "tm" }, "끝"),
       h("div", { style: "flex:1" }, h("b", {}, syncOn() ? "동기화 확인" : "백업 내보내기"), h("div", { class: "small muted" }, syncOn() ? "위쪽에 ☁ 동기화됨이 떠 있으면 끝" : "기록·백업 → 백업 내보내기 (동기화를 켜면 필요 없어요)")),
       h("button", { class: "btn ghost small", onclick: () => go("records") }, "열기")));
