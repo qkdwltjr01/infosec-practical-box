@@ -781,7 +781,7 @@ function wrongRow(date) {
   return taskRow(date, "w", "", "기출 오답 다시 쓰기 · 30분", "기출 노트 '틀린 것만'에서 2 ~ 3문제를 책 덮고 다시 타이핑 → AI 정리와 비교 → ✅/❌", h("button", { class: "btn ghost small", onclick: () => go("past") }, "기출 노트"));
 }
 const EXAM_DATE = "2026-11-14";
-const APP_VER = "10.27-1";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
+const APP_VER = "10.28-1";   // 고칠 때마다 올려요 (웹이 새 버전인지 확인용)
 // 날짜별 안내 (자세한 건 일별계획.md)
 const PLAN = {
   "2026-10-27": ["1회독 1일차 (10.24 ~ 26 못 함 → 10.27부터 7일로 다시 짬)", "아침 복습 없이 07:00에 바로 B1 ① 구조부터. 오늘은 B1~B10 (PART 1 전체, 8시간 39분) → 시스템 단답 p.6~79 (3시간 5분). 1회독 서술·실무는 홀수 번호만이에요 (짝수는 2회독에서). 23:00이 넘으면 단답 남은 쪽은 내일 07:00에"],
@@ -806,7 +806,7 @@ function load() {
 }
 let S = load();
 function save() { S.updatedAt = Date.now(); if (typeof syncSoon === "function") syncSoon(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { alertBox("저장에 실패했어요. 백업을 내보내 두세요."); } }
-function blk(id) { return S.blocks[id] || (S.blocks[id] = { outline: "", kw: {}, attempts: [], u: 0 }); }
+function blk(id) { return S.blocks[id] || (S.blocks[id] = { outline: "", kw: {}, attempts: [], u: 0, pv: 2 }); }
 function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 // 동기화 병합용: 쌍·어휘에 id가 없던 옛 기록에 id를 붙여요
 function normalizeState(s) {
@@ -814,6 +814,19 @@ function normalizeState(s) {
   s.pairs.forEach(p => { if (!p.id) p.id = newId(); });
   s.glossary.forEach(g => { if (!g.id) g.id = newId(); if (!g.u) g.u = 0; });
   s.past = s.past || []; s.past.forEach(e => { if (!e.id) e.id = newId(); if (!e.u) e.u = 0; if (!e.retry) e.retry = []; });
+  // 10.28 들여쓰기 계산 변경: 칸 경로가 바뀐 키워드·맞음/틀림 기록을 새 경로로 옮겨요 (블록마다 한 번)
+  for (const id in s.blocks) {
+    const d = s.blocks[id]; if (!d || d.pv >= 2) continue;
+    if (d.outline) {
+      const a = parseOutlineV1(d.outline), b = parseOutline(d.outline), kw = {}, moved = {};
+      a.forEach((n, i) => { if (b[i] && n.path !== b[i].path) moved[n.path] = b[i].path; });
+      for (const k in d.kw || {}) kw[moved[k] || k] = d.kw[k];
+      d.kw = kw;
+      const st = {}; for (const o in moved) { const ok = id + "::" + o; if (s.nodeStats[ok]) { st[id + "::" + moved[o]] = s.nodeStats[ok]; delete s.nodeStats[ok]; } }
+      Object.assign(s.nodeStats, st);
+    }
+    d.pv = 2;
+  }
   return s;
 }
 normalizeState(S);
@@ -863,7 +876,28 @@ function lineDepth(label, raw, prevDepth) {
   const ws = raw.match(/^[ \t]*/)[0].replace(/\t/g, "  ");
   return Math.floor(ws.length / 2);
 }
+// 깊이 = 위에 열려 있는 "더 큰 단계" 제목 수. 단계를 건너뛰어도(1. 바로 아래 1)) 같은 번호끼리는 같은 깊이 (10.28)
 function parseOutline(text) {
+  const nodes = []; const stack = []; const seen = {};
+  for (const raw of (text || "").split("\n")) {
+    if (!raw.trim()) continue;
+    const label = raw.trim().replace(/^[-*·•]\s*/, "");
+    if (!label) continue;
+    const isMentor = /^(보안\s*멘토|💡|주석|📌)/.test(label);
+    // 보안멘토·주석은 바로 위 제목의 하위 칸, 연달아 나오면 형제
+    const rank = isMentor ? 99 : lineDepth(label, raw, null);
+    if (isMentor) { while (stack.length && stack[stack.length - 1].mentor) stack.pop(); }
+    else { while (stack.length && (stack[stack.length - 1].mentor || stack[stack.length - 1].rank >= rank)) stack.pop(); }
+    const depth = stack.length;
+    let path = [...stack.map(x => x.label), label].join(" > ");
+    if (seen[path]) { seen[path]++; path += ` (${seen[path]})`; } else seen[path] = 1;
+    nodes.push({ label, depth, path, mentor: isMentor, note: /^(주석|📌)/.test(label) });
+    stack.push({ label, mentor: isMentor, rank });
+  }
+  return nodes;
+}
+// 10.27까지의 계산 (저장된 키워드 경로를 새 경로로 옮길 때만 써요)
+function parseOutlineV1(text) {
   const nodes = []; const stack = []; const seen = {};
   let prevDepth = null, prevHeadDepth = null;
   for (const raw of (text || "").split("\n")) {
@@ -1306,7 +1340,7 @@ function stepStructure(area, b) {
         if (e.isComposing || e.keyCode === 229) return; // 한글 조합 중에는 무시
         if ((e.ctrlKey || e.altKey) && (e.key === "m" || e.key === "M" || e.key === "ㅡ")) { e.preventDefault(); rows.splice(i + 1, 0, { lv: 0, mentor: true, text: "" }); paint(i + 1); }
         else if ((e.ctrlKey || e.altKey) && e.key === ";") { e.preventDefault(); rows.splice(i + 1, 0, { lv: 0, mentor: true, note: true, text: "" }); paint(i + 1); }
-        else if (e.key === "Enter") { e.preventDefault(); rows.splice(i + 1, 0, { lv: r.mentor ? Math.max(0, depth - 1) : r.lv, mentor: false, text: "" }); paint(i + 1); }
+        else if (e.key === "Enter") { e.preventDefault(); rows.splice(i + 1, 0, { lv: r.mentor ? ((rows.slice(0, i).reverse().find(x => !x.mentor) || { lv: 0 }).lv) : r.lv, mentor: false, text: "" }); paint(i + 1); }
         else if (e.key === "Tab") { e.preventDefault(); if (!r.mentor) { r.lv = Math.max(0, Math.min(4, r.lv + (e.shiftKey ? -1 : 1))); paint(i); } }
         else if (e.key === "Backspace" && !inp.value) { e.preventDefault(); rows.splice(i, 1); paint(Math.max(0, i - 1)); }
         else if (e.key === "ArrowUp" && i > 0) { e.preventDefault(); focusRow(i - 1); }
@@ -2700,7 +2734,7 @@ function mergeStates(A, B) {
     const seen = new Set(), attempts = [];
     for (const a of [...(x.attempts || []), ...(y.attempts || [])]) { const k = [a.date, a.time, a.hit, a.total].join("|"); if (!seen.has(k)) { seen.add(k); attempts.push(a); } }
     attempts.sort((p, q) => (p.date + p.time).localeCompare(q.date + q.time));
-    out.blocks[id] = { outline: w.outline, kw: w.kw, u: Math.max(+x.u || 0, +y.u || 0), attempts };
+    out.blocks[id] = { outline: w.outline, kw: w.kw, u: Math.max(+x.u || 0, +y.u || 0), attempts, pv: 2 };
     if (x.done || y.done) out.blocks[id].done = x.done && y.done ? (x.done < y.done ? x.done : y.done) : (x.done || y.done);
     if (w.starts || x.starts || y.starts) out.blocks[id].starts = w.starts || x.starts || y.starts;
   }
